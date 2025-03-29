@@ -1,62 +1,0 @@
-Dependencies for Project 'project', Target 'Target 1': (DO NOT MODIFY !)
-CompilerVersion: 6210000::V6.21::ARMCLANG
-F (.\main.c)(0x67E6D8AA)(-xc -std=c90 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O1 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -xc -std=c99-I./RTE/_Target_1-IC:/Users/calvi/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IC:/Users/calvi/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/Drivers/CMSIS/Device/ST/STM32L4xx/Include-D__UVISION_VERSION="539" -D_RTE_ -DSTM32L476xx -D_RTE_-o ./objects/main.o -MD)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626FF39E)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x656A58D2)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_version.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_compiler.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_armclang.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\mpu_armv7.h)(0x626FF39E)
-I (system_stm32l4xx.hD2C.hL:\Keil_v5\ARM\ARMCLANG\include\stddef.h)(0x00000000)
-I (ssd1306.hmsd1306_conf.hLsd1306_fonts.h)(0x00000000)
-I (C:\Keil_v5\ARM\ARMCLANG\include\string.h)(0x656A58D2)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdio.h)(0x656A58D2)
-F (.\startup_stm32l476xx.s)(0x67E6BA87)(--cpu Cortex-M4.fp.sp --pd "__EVAL SETA 1" -g --diag_suppress=A1950W-I.\RTE\_Target_1-IC:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include-IC:\Users\calvi\AppData\Local\Arm\Packs\Keil\STM32L4xx_DFP\2.7.0\Drivers\CMSIS\Device\ST\STM32L4xx\Include--pd "__UVISION_VERSION SETA 539"--pd "_RTE_ SETA 1"--pd "STM32L476xx SETA 1"--pd "_RTE_ SETA 1"--list .\listings\startup_stm32l476xx.lst--xref -o .\objects\startup_stm32l476xx.o--depend .\objects\startup_stm32l476xx.d)
-F (.\stm32l476xx.h)(0x67E6BA86)()
-F (.\RTC.c)(0x67E6BA87)(-xc -std=c90 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O1 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -xc -std=c99-I./RTE/_Target_1-IC:/Users/calvi/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IC:/Users/calvi/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/Drivers/CMSIS/Device/ST/STM32L4xx/Include-D__UVISION_VERSION="539" -D_RTE_ -DSTM32L476xx -D_RTE_-o ./objects/rtc.o -MD)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626FF39E)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x656A58D2)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_version.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_compiler.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_armclang.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\mpu_armv7.h)(0x626FF39E)
-I (system_stm32l4xx.hD:\Keil_v5\ARM\ARMCLANG\include\string.h)(0x00000000)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdio.h)(0x656A58D2)
-F (.\SysClock.c)(0x67E6BA86)(-xc -std=c90 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O1 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -xc -std=c99-I./RTE/_Target_1-IC:/Users/calvi/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IC:/Users/calvi/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/Drivers/CMSIS/Device/ST/STM32L4xx/Include-D__UVISION_VERSION="539" -D_RTE_ -DSTM32L476xx -D_RTE_-o ./objects/sysclock.o -MD)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626FF39E)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x656A58D2)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_version.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_compiler.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_armclang.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\mpu_armv7.h)(0x626FF39E)
-I (system_stm32l4xx.h)(0x67E6CFD4)
-F (.\I2C.c)(0x67E6BA87)(-xc -std=c90 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O1 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -xc -std=c99-I./RTE/_Target_1-IC:/Users/calvi/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IC:/Users/calvi/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/Drivers/CMSIS/Device/ST/STM32L4xx/Include-D__UVISION_VERSION="539" -D_RTE_ -DSTM32L476xx -D_RTE_-o ./objects/i2c.o -MD)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stddef.hetm32l476xx.h)(0x00000000)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_version.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_compiler.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_armclang.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\mpu_armv7.h)(0x626FF39E)
-I (system_stm32l4xx.h)(0x67E6CFD4)
-F (.\ssd1306.c)(0x67E6D8BB)(-xc -std=c90 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O1 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -xc -std=c99-I./RTE/_Target_1-IC:/Users/calvi/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IC:/Users/calvi/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/Drivers/CMSIS/Device/ST/STM32L4xx/Include-D__UVISION_VERSION="539" -D_RTE_ -DSTM32L476xx -D_RTE_-o ./objects/ssd1306.o -MD)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stddef.hRtm32l476xx.h)(0x00000000)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626FF39E)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x656A58D2)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_version.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_compiler.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_armclang.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\mpu_armv7.h)(0x626FF39E)
-I (system_stm32l4xx.hDsd1306_conf.h\sd1306_fonts.h)(0x00000000)
-I (C:\Keil_v5\ARM\ARMCLANG\include\math.h)(0x656A58D2)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdlib.h)(0x656A58D2)
-I (C:\Keil_v5\ARM\ARMCLANG\include\string.h)(0x656A58D2)
-F (.\ssd1306_fonts.c)(0x67E6BA87)(-xc -std=c90 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O1 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -xc -std=c99-I./RTE/_Target_1-IC:/Users/calvi/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IC:/Users/calvi/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/Drivers/CMSIS/Device/ST/STM32L4xx/Include-D__UVISION_VERSION="539" -D_RTE_ -DSTM32L476xx -D_RTE_-o ./objects/ssd1306_fonts.o -MD)
-I (C:\Keil_v5\ARM\ARMCLANG\include\stdint.h)(0x656A58D2)
-F (.\LCD.c)(0x67E6D7B9)(-xc -std=c90 --target=arm-arm-none-eabi -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O1 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -xc -std=c99-I./RTE/_Target_1-IC:/Users/calvi/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include-IC:/Users/calvi/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/Drivers/CMSIS/Device/ST/STM32L4xx/Include-D__UVISION_VERSION="539" -D_RTE_ -DSTM32L476xx -D_RTE_-o ./objects/lcd.o -MD)
-I (stm32l476xx.h)(0x67E6BA86)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\core_cm4.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_version.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_compiler.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\cmsis_armclang.h)(0x626FF39E)
-I (C:\Users\calvi\AppData\Local\Arm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include\mpu_armv7.h)(0x626FF39E)
-I (system_stm32l4xx.h)(0x67E6CFD4)

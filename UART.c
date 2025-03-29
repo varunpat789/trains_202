@@ -124,6 +124,11 @@ void USART_Write(USART_TypeDef * USARTx, uint8_t *buffer, uint32_t nBytes) {
 }   
  
 
+void USART2_Write(uint8_t *buffer, uint32_t nBytes) {
+	USART_Write(USART2, buffer, nBytes);
+}   
+
+
 void USART_Delay(uint32_t us) {
 	uint32_t time = 100*us/7;    
 	while(--time);   
