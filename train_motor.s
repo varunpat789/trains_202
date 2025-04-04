@@ -18,8 +18,12 @@ __main	PROC
     ; Clockwise = Forwards
     ; Counterclockwise = Reverse
     ; Do not need to check for input, if this function is been carried out then we are assuming it was done intentionly within main
-	; Direction is determined by a flag set within the main file, this will check such flag and carry out accordinlgy
 	; Alter speed of rotation by changing delay
+
+	;IN ARGS: R0 = DIRECTION FLAG(1 = clockwise[forward], 0 = counterclockwise[reverse])
+	;OUT ARGS: Nothing, possible r0 = num rotations
+
+	;Registers used: r0, r1, r2, r7, r8, r9, r10, r11
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 	; Enable Port C clocks
@@ -28,7 +32,7 @@ __main	PROC
 	ORR r1, r1, #0x00000006         ;set clocks for Port B C high
 	STR r1, [r0, #RCC_AHB2ENR]     	;store result back to clock reg
 
-	;set the mode of PC13 for input
+	;set the mode of PC for input
 	LDR r0, =GPIOC_BASE        		;load in base module
 	LDR r1, [r0, #GPIO_MODER]      	;load moad register
 	BIC r1, r1, #0x000C0000         ;clear bits for PC9, 18-19
@@ -67,6 +71,20 @@ __main	PROC
 	BIC r1, r1, #0x00000360   		;clear bits 9,8,6,5
 	ORR r1, r1, #0x00000000
 	STR r1, [r0, #GPIO_ODR]
+
+	BL main_loop
+
+	;cleanup, set everything to 0 for safety
+	MOV r11, #0
+	MOV r10, #0
+	MOV r0,  #0
+	MOV r1,  #0
+	MOV r2,  #0
+	MOV r9,  #0
+    MOV r7,  #0
+    MOV r8,  #0
+
+	BX LR
 	
 	
 main_loop
