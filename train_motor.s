@@ -32,7 +32,7 @@ __main	PROC
 	ORR r1, r1, #0x00000006         ;set clocks for Port B C high
 	STR r1, [r0, #RCC_AHB2ENR]     	;store result back to clock reg
 
-	;set the mode of PC for input
+	; TRAIN
 	LDR r0, =GPIOC_BASE        		;load in base module
 	LDR r1, [r0, #GPIO_MODER]      	;load moad register
 	BIC r1, r1, #0x000C0000         ;clear bits for PC9, 18-19

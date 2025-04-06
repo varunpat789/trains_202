@@ -34,11 +34,11 @@ __main	PROC
 	ORR r2, r2, #0x08000000    		;set 01 for pin 13 for output
 	STR r1, [r0,#GPIO_MODER]       	;store result back to moder
 	
-	;set the pupdr of PC9, PC8, PC6, PC5 
+	;set the pupdr of PC13
 	LDR r1, =GPIOC_BASE        		;load in base module
 	LDR r2, [r1, #GPIO_PUPDR]      	;load moad register
-	BIC r2, r2, #0x0C000000         ;clear bits for PC9, 18-19
-	ORR r2, r2, #0x08000000    		;set 01 for pin 9 for PU/PD
+	BIC r2, r2, #0x0C000000         ;clear bits for PC13
+	ORR r2, r2, #0x08000000    		;set 01 for pin 13 for PU/PD
 	STR r2, [r1,#GPIO_PUPDR]       	;store result back to pupdr
 	
 	
@@ -96,12 +96,12 @@ main_loop
 @ 	BNE	delayloop
 @ 	BX LR
 	
-@ 	ENDP
+ 	ENDP
 	
-@ 	ALIGN			
+ 	ALIGN			
 
-@ 	AREA myData, DATA, READWRITE
-@ 	ALIGN
+ 	AREA myData, DATA, READWRITE
+ 	ALIGN
 ; Replace ECE1770 with your last name
 str DCB "ECE1770",0
 char1	DCD	43
