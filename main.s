@@ -38,6 +38,7 @@ __main	PROC
     ;                  Direction stored in r9(1 = forward, 0 reverse)
     ;                  Status stored in r8(1 = moving, 0 = stopped)
     ;                  Count stored in r7(increments by 4 to access stop addresses)
+	;				   Manual override flag stored in r6
     ; 
     ; Subroutine Doc:
     ;     seven_Segment: Read current stop(r10) and displays it to seven segment display
@@ -46,7 +47,7 @@ __main	PROC
     ;     green_led: Turns on green led based off the status(r8) of the train, only turns on when moving
     ;     train_motor: Reads direction(r9) and turns the motor a full rotation
 
-	;Registers used: r12, r11, r10
+	;Registers used: r12, r11, r10,r9,48,r7,r6
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 
@@ -75,30 +76,28 @@ __main	PROC
 
 
 
-
-
-
-
 automatic
 
     ; automatic functionining of train
 
+	;considerations: push and pop CMP flag 
+	CMP r6, #1                      ;if IGNORE flag(manual) is high, don't change status,movement, or seven-seg
 
-    BL seven_segment                ; branch to seven_segment sub to display current stop
+    BLNE seven_segment              ; branch to seven_segment sub to display current stop
 
-    BL doors_motor                  ; branch to open/close doors
+    BLNE doors_motor                ; branch to open/close doors, only if stopping
 
-    MOV r8, #1                      ; set status to 1 to indicate we're about to start moving
+    MOVNE r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
 
-    BL seven_segment                ; call seven_segment again to change display
+    BLNE seven_segment              ; call seven_segment again to change display
 
-    BL green_led                    ; turn on green led to indicate movement
+    BL green_led                    ; turn on green led to indicate movement, keep on
 
     BL train_motor                  ; move the train either forward or backward
 
-    MOV r8, #0                      ; set status to 0 to indicate we've stopped moving
+    MOVNE r8, #0                    ; set status to 0 to indicate we've stopped moving
 
-    BL green_led                    ; once train is done moving, turn off green led
+    BLNE green_led                  ; once train is done moving, turn off green led
 
     ; maybe change seven_segment here but shouldn't have to since we do at beginning of loop
 
@@ -215,7 +214,7 @@ pin_init
 	ORR r2, r2, #0x08000000    		;set 01 for pin 13 for PU/PD
 	STR r2, [r1,#GPIO_PUPDR]       	;store result back to pupdr
 
-    pop{ro,r1,r2}                   ;load back in runtime
+    pop{r0,r1,r2}                   ;load back in runtime
 
     BX LR                           ;branch back to main
 
