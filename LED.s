@@ -69,7 +69,8 @@ main_loop
     LDR r5, =STATUS                 ;placeholder, status of train
     LDR r5, [=STATUS]
     CMP r5, #1                      ;check to see what our status is
-    MOVEQ r4, 0x00002000            ;if our status is moving set ODR high
+    MOVEQ r4, 0x00002000            ;if our status is moving set ODR high(green light)
+	MOVNE r4, 0x00000000			;if our status is not moving, set ODR low
     STR r4, [r3, #GPIO_ODR]         ;store back result regardless
 
     BXLR
