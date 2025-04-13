@@ -26,51 +26,7 @@ __main	PROC
 	;Registers used: r0, r1, r2, r7, r8, r9, r10, r11
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
-	; Enable Port C clocks
-	LDR r0, =RCC_BASE      			;load in base module
-	LDR r1, [r0, #RCC_AHB2ENR]     	;load in clock module
-	ORR r1, r1, #0x00000006         ;set clocks for Port C high
-	STR r1, [r0, #RCC_AHB2ENR]     	;store result back to clock reg
-
-	;set the mode of PC for input
-	LDR r0, =GPIOC_BASE        		;load in base module
-	LDR r1, [r0, #GPIO_MODER]      	;load moad register
-	BIC r1, r1, #0x00300000         ;clear bits for PC10, 20-21
-	ORR r1, r1, #0x00100000    		;set 01 for pin 10 for output
-	
-	BIC r1, r1, #0x00C00000         ;clear bits for PC11, 22-23
-	ORR r1, r1, #0x00800000    		;set 01 for pin 11 for output
-	
-	BIC r1, r1, #0x03000000         ;clear bits for PC12, 24-25
-	ORR r1, r1, #0x01000000    		;set 01 for pin 12 for output
-	
-	BIC r1, r1, #0x30000000         ;clear bits for PC14, 28-29
-	ORR r1, r1, #0x10000000    		;set 01 for pin 14 for output
-	STR r1, [r0,#GPIO_MODER]       	;store result back to moder
-	
-	;set the pupdr of PC9, PC8, PC6, PC5 
-	LDR r0, =GPIOC_BASE        		;load in base module
-	LDR r1, [r0, #GPIO_PUPDR]      	;load moad register
-	BIC r1, r1, #0x00300000         ;clear bits for PC9, 18-19
-	ORR r1, r1, #0x00100000    		;set 01 for pin 9 for PU/PD
-	
-	BIC r1, r1, #0x00C00000         ;clear bits for PC8, 16-17
-	ORR r1, r1, #0x00800000    		;set 01 for pin 8 for PU/PD
-	
-	BIC r1, r1, #0x03000000         ;clear bits for PC6, 12-13
-	ORR r1, r1, #0x01000000    		;set 01 for pin 6 for PU/PD
-	
-	BIC r1, r1, #0x30000000         ;clear bits for PC5, 10-11
-	ORR r1, r1, #0x10000000    		;set 01 for pin 13 for PU/PD
-	STR r1, [r0,#GPIO_PUPDR]       	;store result back to pupdr
-	
-	
-	; Initialize all of the outputs to zero
-	LDR r0, =GPIOC_BASE
-	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x00005C00   		;clear bits 14,12,11,10
-	ORR r1, r1, #0x00000000
-	STR r1, [r0, #GPIO_ODR]
+	PUSH{r7,r8,r9,r10,r11,r12}
 
 	BL main_loop
 
@@ -83,6 +39,8 @@ __main	PROC
 	MOV r9,  #0
     MOV r7,  #0
     MOV r8,  #0
+
+	POP{r7,r8,r9,r10,r11,r12}
 
 	BX LR
 	

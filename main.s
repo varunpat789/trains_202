@@ -13,10 +13,6 @@
 @ ISR = Same as regular function, just moved to the specified stop. 
 @ Move back to automatic functioning
 
-
-
-
-
 	INCLUDE core_cm4_constants.s		; Load Constant Definitions
 	INCLUDE stm32l476xx_constants.s      
 
@@ -30,6 +26,8 @@
 				
 __main	PROC
 
+	;test commit
+
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;README;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	; MAIN 
 	; Utilizing PORT A, B, C
@@ -40,6 +38,7 @@ __main	PROC
     ;                  Direction stored in r9(1 = forward, 0 reverse)
     ;                  Status stored in r8(1 = moving, 0 = stopped)
     ;                  Count stored in r7(increments by 4 to access stop addresses)
+	;				   Manual override flag stored in r6
     ; 
     ; Subroutine Doc:
     ;     seven_Segment: Read current stop(r10) and displays it to seven segment display
@@ -48,10 +47,13 @@ __main	PROC
     ;     green_led: Turns on green led based off the status(r8) of the train, only turns on when moving
     ;     train_motor: Reads direction(r9) and turns the motor a full rotation
 
-	;Registers used: r12, r11, r10
+	;Registers used: r12, r11, r10,r9,48,r7,r6
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
 
-    ; PIN Intialization
+	BL System_Clock_Init
+	BL UART2_Init
+	    ; PIN Intialization
     BL pin_init
 
     ; Define intial conditions
@@ -74,30 +76,28 @@ __main	PROC
 
 
 
-
-
-
-
 automatic
 
     ; automatic functionining of train
 
+	;considerations: push and pop CMP flag 
+	CMP r6, #1                      ;if IGNORE flag(manual) is high, don't change status,movement, or seven-seg
 
-    BL seven_segment                ; branch to seven_segment sub to display current stop
+    BLNE seven_segment              ; branch to seven_segment sub to display current stop
 
-    BL doors_motor                  ; branch to open/close doors
+    BLNE doors_motor                ; branch to open/close doors, only if stopping
 
-    MOV r8, #1                      ; set status to 1 to indicate we're about to start moving
+    MOVNE r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
 
-    BL seven_segment                ; call seven_segment again to change display
+    BLNE seven_segment              ; call seven_segment again to change display
 
-    BL green_led                    ; turn on green led to indicate movement
+    BL green_led                    ; turn on green led to indicate movement, keep on
 
     BL train_motor                  ; move the train either forward or backward
 
-    MOV r8, #0                      ; set status to 0 to indicate we've stopped moving
+    MOVNE r8, #0                    ; set status to 0 to indicate we've stopped moving
 
-    BL green_led                    ; once train is done moving, turn off green led
+    BLNE green_led                  ; once train is done moving, turn off green led
 
     ; maybe change seven_segment here but shouldn't have to since we do at beginning of loop
 
@@ -125,8 +125,7 @@ automatic
 
  
     
-pin_init
-    
+pin_init  
     push{r0,r1,r2}                  ;preserve runtime in case
     
     ; Enable Port C clocks
@@ -215,18 +214,137 @@ pin_init
 	ORR r2, r2, #0x08000000    		;set 01 for pin 13 for PU/PD
 	STR r2, [r1,#GPIO_PUPDR]       	;store result back to pupdr
 
-    pop{ro,r1,r2}                   ;load back in runtime
+    pop{r0,r1,r2}                   ;load back in runtime
 
     BX LR                           ;branch back to main
 
 
+printAccel
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =accel			; Load text
+	MOV r1, #15    			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printDecel
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =decel			; Load text
+	MOV r1, #15    			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printEmerg
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =emerg			; Load text
+	MOV r1, #17  			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printAtStopA
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =atStopA		; Load text
+	MOV r1, #12 			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printAtStopB
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =atStopB		; Load text
+	MOV r1, #12 			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printAtStopC
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =atStopC		; Load text
+	MOV r1, #12 			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printGoingToA
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =goingToStopA	; Load text
+	MOV r1, #18				; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printGoingToB
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =goingToStopB	; Load text
+	MOV r1, #18				; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+	
+printGoingToC
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =goingToStopC	; Load text
+	MOV r1, #18				; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printManualOverride
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =manualOverride	; Load text
+	MOV r1, #18				; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printEndOverride
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =endOverride	; Load text
+	MOV r1, #17				; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printDoorOpen
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =doorOpen	; Load text
+	MOV r1, #15				; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printDoorClose
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =doorClose	; Load text
+	MOV r1, #15				; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+
+stop b stop
 ; Replace ECE1770 with your last name
 
 ; Define stops as globals, 1 = A, 2 = B, 3 = C
 stops DCD 1, 2, 3, 2                  ;defines movement stop 1, then 2, then 3, then 2, then restart at 1
 
 str DCB "ECE1770",0
-char1	DCD	43
+accel	DCB "Accelerating!\r\n", 0
+decel	DCB "Decelerating!\r\n", 0
+emerg	DCB "Emergency Stop!\r\n", 0
+atStopA	DCB "At stop A!\r\n", 0
+atStopB	DCB "At stop B!\r\n", 0
+atStopC	DCB "At stop C!\r\n", 0
+goingToStopA	DCB "Going to stop A!\r\n", 0
+goingToStopB	DCB "Going to stop B!\r\n", 0
+goingToStopC	DCB "Going to stop C!\r\n", 0
+manualOverride	DCB "Manual Override!\r\n", 0
+endOverride	DCB "Resuming route!\r\n", 0
+doorOpen	DCB "Opening Door!\r\n", 0
+doorClose	DCB "Closing Door!\r\n", 0
+
 
 	END
 
