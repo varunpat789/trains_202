@@ -255,6 +255,7 @@ displaykey
 	;LDR r0, =str   ; First argument
 	MOV r1, #1    ; Second argument
 	BL USART2_Write
+	bl check_code1
 	bl delay
 	b reset
 	
@@ -274,8 +275,39 @@ reset
 
 	ENDP		
 
-			
-		
+check_code1
+	CMP r7, #1
+	BEQ check_code2
+	CMP r7, #2
+	BEQ check_code3
+	PUSH{r1}
+	LDR r1, [r5]
+	CMP r1, #57
+	MOVEQ r7, #1
+	pop{r1}
+	BNE reset
+
+check_code2
+	PUSH{r1}
+	MOV r7, #0
+	bl delay
+	LDR, r1, [r5]
+	CMP r1, #49
+	MOVEQ r7, #2
+	POP{r1}
+	BNE reset
+
+check_code3
+	PUSH{r1}
+	bl delay
+	LDR, r1, [r5]
+	CMP r1, #49
+	BEQ function
+	SUBEQ r7, #2
+	POP{r1}
+	BNE reset
+
+End b End
 
 delay	PROC
 	; Delay for software debouncing
