@@ -23,12 +23,17 @@
 	
 	AREA    main, CODE, READONLY
 	EXPORT	__main				; make __main visible to linker
+	EXPORT EXTI15_10_IRQHandler
+	
+	IMPORT keypad_Init
+	IMPORT keypad
 	ENTRY			
 				
 __main	PROC
 	
 	BL System_Clock_Init
 	BL UART2_Init
+	BL keypad_Init
 
 
 
@@ -40,9 +45,9 @@ __main	PROC
 		STR r1, [r0,#RCC_AHB2ENR];
 
 		LDR r0, =RCC_BASE
-		LDR r1, [r0, #RCC_AHB2ENR]
+		LDR r1, [r0, #RCC_APB2ENR]
 		ORR r1, r1, #RCC_APB2ENR_SYSCFGEN; 0x1
-		STR r1, [r0, #RCC_AHB2ENR]
+		STR r1, [r0, #RCC_APB2ENR]
 
 		LDR r0, =0x40010014
 		LDR r1, [r0]
@@ -50,35 +55,36 @@ __main	PROC
 		ORR r1,#0x20
 		STR r1,[r0]
 
-	; Connect PC4, PA10
+		; Connect PC13
+		LDR r0, =0xE000E104
+		mov r1, #0x100
+		str r1, [r0]
+	
 	LDR r0, =SYSCFG_BASE
-
-		LDR r1, [r0, #SYSCFG_EXTICR3]
-		BIC r1, r1, #SYSCFG_EXTICR3_EXTI13; 0x7
-		ORR r1, r1, #SYSCFG_EXTICR3_EXTI4_PC; 0x2
-		STR r1, [r0, #SYSCFG_EXTICR3]
+		
+		LDR r1, [r0, #0x14]
+		BIC r1, r1, #SYSCFG_EXTICR4_EXTI13; 
+		ORR r1, r1, #SYSCFG_EXTICR4_EXTI13_PC; 
+		STR r1, [r0, #0x14]
 		
 	LDR r0, =EXTI_BASE
-		LDR r1, [r0, #EXTI_PR1]
-		ORR r1, #0x2000  ; Clear pending bits for EXTI4 and EXTI10
-		STR r1, [r0, #EXTI_PR1]
+	
+		LDR R0, =0x40010414   ; EXTI_PR1
+		MOV R1, #(1 << 13)
+		STR R1, [R0]
 
-		LDR r1, [r0, #EXTI_RTSR1]; rising edge
-		ORR r1, #0x2000; // EXTI4, EXTI10
-		STR r1, [r0, #EXTI_RTSR1]
+		LDR r1, [r0, #EXTI_FTSR1]; rising edge
+		ORR r1, #0x2000;
+		STR r1, [r0, #EXTI_FTSR1]
 		
 		LDR r1, [r0, #EXTI_IMR1]
-		ORR r1, #0x2000; // EXTI4, EXTI10
+		ORR r1, #0x2000; 
 		STR r1, [r0, #EXTI_IMR1]
-
-	LDR r0, =NVIC_BASE           
-		LDR r1, [r0, #NVIC_ISER]
-		ORR r1, r1, #(1 << 4)     ; Set bit 10 in ISER0 for EXTI4
-		STR r1, [r0, #NVIC_ISER]
-
-		LDR r1, [r0, #NVIC_ISER]
-		ORR r1, r1, #(1 << 10)  ; Set bit 10 in ISER1 for EXTI10 (42-32=10)
-		STR r1, [r0, #NVIC_ISER]
+		
+		; Clear any pending EXTI13 interrupt
+		LDR r1, [r0, #EXTI_PR1]
+		ORR r1, #0x2000
+		STR r1, [r0, #EXTI_PR1]
 	
 	LDR r0,=GPIOC_BASE;//GPIOC
 	
@@ -96,20 +102,26 @@ __main	PROC
 		BIC r1,r1, #0xC000000;// pin 4
 		ORR r1,r1, #0; // set to no pull-up pull-down
 		STR r1, [r0, #GPIO_PUPDR];
+		
+		CPSIE I; enable global interrupts
 	
 main_loop
-	b main_loop
+    B main_loop
 	ENDP
 		
-EXTI13_IRQHandler PROC		
-	LDR r0, =EXTI_BASE
-	MOV r1, #EXTI_PR1_PIF4
-	STR r1, [r0, #EXTI_PR1]
+EXTI15_10_IRQHandler PROC
+    PUSH {r4-r11}
+    bl keypad
 
-	mov r5, #1
-	pop{r4-r11}
-	bx lr
-	ENDP	
+    ; Clear EXTI13 interrupt pending bit
+    LDR r2, =EXTI_BASE
+    MOV r3, #(1 << 13)
+    STR r3, [r2, #EXTI_PR1]
+
+    POP {r4-r11}
+    BX lr
+    ENDP
+
 					
 	ALIGN			
 
