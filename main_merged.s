@@ -729,37 +729,35 @@ reset
 	ENDP		
 
 check_code1
-	CMP r7, #1
-	BEQ check_code2
-	CMP r7, #2
-	BEQ check_code3
+	CMP r7, #1                   ;r7 is true flag, if 9 has been pressed we add to r7,
+	BEQ check_code2				 ;if r7 = 1, 9 has been pressed and we should now check for 1
+	CMP r7, #2						
+	BEQ check_code3				 ;if r7 = 2, 9, 1 have been pressed and we should now check for the last 1
 	PUSH{r1}
-	LDR r1, [r5]
+	LDR r1, [r5]                   
 	CMP r1, #57
-	MOVEQ r7, #1
-	pop{r1}
-	BNE reset
+	MOVEQ r7, #1                 ;if 9 pressed, set r7 to 1
+	BEQ keypad                   ; if 9 is pressed, branch back to keypad to check again
+	BNE reset                    ;if not equal, exit
 
-check_code2
-	PUSH{r1}
-	MOV r7, #0
-	bl delay
-	LDR, r1, [r5]
-	CMP r1, #49
+check_code2                      
+	LDR, r1, [r5]                ;load in asci value
+	CMP r1, #49					 ;if keypad press is 1, set r7 to 0 and branch back to keypad
 	MOVEQ r7, #2
-	POP{r1}
-	BNE reset
+	BEQ keypad                   ;branch
+	BNE reset					 ;if 1 was not pressed, reset
 
 check_code3
-	PUSH{r1}
-	bl delay
 	LDR, r1, [r5]
 	CMP r1, #49
-	BEQ function
-	SUBEQ r7, #2
-	POP{r1}
+	BEQ emergency_stop           ;if 911 pressed, branch to emergency stop 
+	MOVEQ r7, #0				 ;reset r7 back to 0
 	BNE reset
 
+emergency_stop
+	;Print to terra term that we have stopped
+	;turn off LED, turn off seven segment
+	;turn off motors
 End b End
 	
 
