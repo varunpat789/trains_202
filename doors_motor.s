@@ -19,6 +19,7 @@ __main	PROC
     ; CounterClockwise = Closing
 	; Closing and opening sequence happen in tandem, not seperately
 	; Alter speed of rotation by changing delay
+	; Has to update current stop as well
 
 	;IN ARGS: Nothing
 	;OUT ARGS: Nothing
