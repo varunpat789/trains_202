@@ -117,22 +117,22 @@ __main	PROC
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;;;;;;;;; YOUR CODE GOES HERE ;;;;;;;;;;;;;;;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;		
-start
+open
 	mov r8,#0; outer motor spin 
-	bl button; only happens at the start and at the start of ever new window shield cycle
+	ldr r7, =half_step
+	bl button; only happens at the open and at the open of ever new window shield cycle
 	bic r4, #0xFF; reset r4 to be used for loading
-	b loop_counter_clockwise
-main2
-	bl button; only happens at the start and at the start of ever new window shield cycle
 	b loop_clockwise
+close
+	;delay function goes here
+	b loop_counter_clockwise
 
 loop_counter_clockwise
 	mov r5, #0; i
 	bl delay
-	ldr r7, =half_step; load the array
-	add r8,#1
-	cmp r8,#270; 145 degree counter clockwise spin
-	beq main2
+	sub r8, #1
+	cmp r8, #0
+	beq open
 	push {r8}; so we can reuse r8
 	b spin_ccw
 	
@@ -177,10 +177,9 @@ spin_ccw
 loop_clockwise; loop counter_clockwise but in reverse instead of increment we decrement now to end up in the same spot
 	mov r5, #7; i
 	bl delay
-	ldr r7, =half_step
-	sub r8,#1;145* clockwise
-	cmp r8,#0
-	beq start; branch back to start
+	add r8,#1
+	cmp r8,#270; 145 degree counter clockwise spin
+	beq close; branch back to open
 	push {r8}
 	
 spin_cc
