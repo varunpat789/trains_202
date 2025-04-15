@@ -1,18 +1,3 @@
-@ Base Function(Automatic):
-@ Display stop to seven segment
-@ Open door/close door
-@ Turn off seven segment
-@ Start moving motor full rotation
-@ Display LED on
-@ Stop motor rotation
-@ Turn off LED
-@ Turn on seven segment
-@ Open door/close door
-@ Manual Override:
-@ Keypad pressed -> interrupt service routine. Keypad 1 = Stop A; Keypad 2 = Stop B; Keypad 3 = Stop C
-@ ISR = Same as regular function, just moved to the specified stop. 
-@ Move back to automatic functioning
-
 	INCLUDE core_cm4_constants.s		; Load Constant Definitions
 	INCLUDE stm32l476xx_constants.s      
 
@@ -108,28 +93,6 @@ automatic
     MOVNE r8, #0                    ; set status to 0 to indicate we've stopped moving
 
     BLNE green_led                  ; once train is done moving, turn off green led
-
-    ; maybe change seven_segment here but shouldn't have to since we do at beginning of loop
-
-    ADD r7, #4                      ; increment our count
-
-    ; if we have reached count of 16(4), reset count to 0 and point current stop to start of array(stop 1)
-    CMP r7, #16                     ; compare count with 16(4)
-    MOVEQ r7, #0                    ; if equal reset count
-
-
-    CMP r7, #12                     ; compare count with 12(3) to set r11 appropriately
-    LDR r10, [r11, r7]!             ; load in data and iterate, have to use r11 so r12 is not modified
-    LDREQ r11, [r12]                ; if equal point r11 back to original starting position so we "restart", else r11 will point to bad data
-
-    ;psuedo for above
-    @ for(i=0;i<=length(stops);i++){
-    @     current_stop = stop
-    @     stop = stops[i+1]
-    @     if(i == length(stops)){
-    @         stop = stops[0]
-    @     }
-    @ }
 
     B automatic                      ; continue this loop indefinitely, manual override will be interrupt
 
@@ -229,17 +192,18 @@ pin_init
     BX LR                           ;branch back to main
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;PIN_INIT END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 seven_segment
 	push {lr, r0, r1, r2, r3}
-	cmp r10, #0                  	; see what station we are at
-	beq stationA					; if r10 is 0, we are at station A	and branch accordinl
-	cmp r10, #0x1					
-	beq stationB					; if r10 is 1, we are station B
-	cmp r10, #0x2
-	beq stationC					; if r10 is 2, we are station C
+	cmp r10, #1                  	; see what station we are at
+	beq stationA					; if r10 is 1, we are at station A	and branch accordinl
+	cmp r10, #0x2                   
+	beq stationB					; if r10 is 1 or 21(station B on return direction), we are station B
+	cmp r10, #0x21
+	beq stationB
+	cmp r10, #0x3
+	beq stationC					; if r10 is 3, we are station C
 	b exit							; if r10 does not hold any of these values, exit 
 	
 
@@ -270,7 +234,8 @@ exit
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; README
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;README;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	; MOTOR 1(TRAIN MOVEMENT)
 	; Utilizing PORT C, PINS: PC9, PC8, PC6, PC5
 	; Completes full 360 degree rotations clockwise and counterclockwise
@@ -278,16 +243,18 @@ exit
     ; Counterclockwise = Reverse
     ; Do not need to check for input, if this function is been carried out then we are assuming it was done intentionly within main
 	; Alter speed of rotation by changing delay
+	; Must update station
 
 	;IN ARGS: R9 = DIRECTION FLAG(1 = clockwise[forward], 0 = counterclockwise[reverse])
 	;OUT ARGS: Nothing
 
 	;Registers used: r0, r1, r2, r7, r8, r9, r10, r11
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 	
 train_motor
 	
-	PUSH{r5,r6,r7,r8,r10,r11,r12} 		;want to listen on r9(direction)
+	PUSH{r5,r6,r7,r8,r11} 			;want to listen on r9(direction) and r10(stop), need r12 as it holds base address
 	
 	MOV r10, #215                   ;set max rotation counter before we enter subroutine. change as neccessary
 	
@@ -303,7 +270,13 @@ train_motor
 	CMP r0, #0						;compare flag with 0
 	BEQ full_step_cycle_reverse   	;if we have set flag to 0, initiate reverse movement
 	
-	POP{r5,r6,r7,r8,r10,r11,r12}	; pop back registers
+	;update train station
+	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
+	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
+	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
+	LDRNE r10, [r11]         
+	
+	POP{r5,r6,r7,r8,r11}	; pop back registers
 	
 	BX LR                            ;exit once rotation is done
 	
@@ -402,8 +375,10 @@ full_step_cycle_reverse
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;LED START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; README
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;README;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	; LED(MOVEMENT SIGNAL)
 	; Utilizing PORT A, PINS: PA5
 	; 
@@ -411,7 +386,7 @@ full_step_cycle_reverse
 	;OUT ARGS: Nothing
 
     ;REGISTERS USED: r3,r4,r8
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 green_led
 
@@ -421,28 +396,26 @@ green_led
     LDR r4, [r3, #GPIO_ODR]
 	
     CMP r8, #1                      ;check to see what our status(r8) is
-    MOVEQ r4, 0x00000020            ;if our status is moving set ODR high(green light)
-	MOVNE r4, 0x00000000			;if our status is not moving, set ODR low
+    MOVEQ r4, #0x00000020            ;if our status is moving set ODR high(green light)
+	MOVNE r4, #0x00000000			;if our status is not moving, set ODR low
     STR r4, [r3, #GPIO_ODR]         ;store back result regardless
 	
 	POP {r3,r4}   ;pop back registers
 
-    BXLR
+    BX LR
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;LED END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-delay	PROC
+delay
 	; Delay for software debouncing
 	LDR	r2, =0xE10
 delayloop
 	SUBS	r2, #1
 	BNE	delayloop
 	BX LR
-	
-	ENDP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -904,7 +877,7 @@ stop b stop
 ; Replace ECE1770 with your last name
 
 ; Define stops as globals, 1 = A, 2 = B, 3 = C
-stops DCD 1, 2, 3, 2                  ;defines movement stop 1, then 2, then 3, then 2, then restart at 1
+stops DCD 1, 2, 3, 21                  ;defines movement stop 1, then 2, then 3, then 2(use 21 to distinguish), then restart at 1
 
 str DCB "ECE1770",0
 accel	DCB "Accelerating!\r\n", 0
