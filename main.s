@@ -39,6 +39,7 @@ __main	PROC
     ;                  Status stored in r8(1 = moving, 0 = stopped)
     ;                  Count stored in r7(increments by 4 to access stop addresses)
 	;				   Manual override flag stored in r6
+	;				   Doors flag stored in r5
     ; 
     ; Subroutine Doc:
     ;     seven_Segment: Read current stop(r10) and displays it to seven segment display
@@ -47,7 +48,7 @@ __main	PROC
     ;     green_led: Turns on green led based off the status(r8) of the train, only turns on when moving
     ;     train_motor: Reads direction(r9) and turns the motor a full rotation
 
-	;Registers used: r12, r11, r10,r9,48,r7,r6
+	;Registers used: r12, r11, r10,r9,r8,r7,r6
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 
@@ -82,10 +83,19 @@ automatic
 
 	;considerations: push and pop CMP flag 
 	CMP r6, #1                      ;if IGNORE flag(manual) is high, don't change status,movement, or seven-seg
+									; only check at the beginning, we can't 
 
     BLNE seven_segment              ; branch to seven_segment sub to display current stop
 
-    BLNE doors_motor                ; branch to open/close doors, only if stopping
+    BLNE doors_motor                ; branch to open doors, only if stoppingb
+
+	MOVNE r5, #1                    ; set flag for close doors
+
+	BLNE long_delay                 ; branch to long delay
+
+	BLNE doors_motor                ; branch to close doors,
+
+	MOVNE r5, #0					; set flag for open doors
 
     MOVNE r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
 
