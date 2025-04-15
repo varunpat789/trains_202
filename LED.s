@@ -13,7 +13,7 @@ __main	PROC
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;README;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	; LED(MOVEMENT SIGNAL)
-	; Utilizing PORT C, PINS: PA5
+	; Utilizing PORT A, PINS: PA5
 	; 
 	;IN ARGS: status(moving = 1, stopped = 0)
 	;OUT ARGS: Nothing
