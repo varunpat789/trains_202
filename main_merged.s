@@ -33,7 +33,7 @@ __main	PROC
     ;     green_led: Turns on green led based off the status(r8) of the train, only turns on when moving
     ;     train_motor: Reads direction(r9) and turns the motor a full rotation
 
-	;Registers used: r12, r11, r10,r9,r8,r7,r6
+	;Registers used: r12, r11, r10,r9,r8,r7,r6, CANT USE r12
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 
