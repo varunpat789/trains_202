@@ -53,8 +53,9 @@ __main	PROC
 
 	; Connect PC13
 	LDR r0, =0xE000E104
-	mov r1, #0x100
-	str r1, [r0]
+	MOV r1, #0x100
+	STR r1, [r0]
+
 	
 	LDR r0, =SYSCFG_BASE
 		
@@ -66,10 +67,10 @@ __main	PROC
 	LDR r0, =EXTI_BASE
 	
 		LDR r1, [r0, #EXTI_PR1]
-		ORR r1, #0x2000  ; Clear pending bits for EXTI13
+		MOV r1, #(1 << 13)
 		STR r1, [r0, #EXTI_PR1]
 
-		LDR r1, [r0, #EXTI_FTSR1]; rising edge
+		LDR r1, [r0, #EXTI_FTSR1]
 		ORR r1, #0x2000;
 		STR r1, [r0, #EXTI_FTSR1]
 		
@@ -85,12 +86,12 @@ __main	PROC
 		STR r1, [r0,#GPIO_MODER];
 		
 		LDR r1,[r0,#GPIO_OTYPER];
-		BIC	r1,r1, #0x2000;//pin 4
+		BIC	r1,r1, #0x2000;//pin 13
 		ORR r1,r1, #0x0;//set to push-pull
 		STR r1, [r0,#GPIO_OTYPER];
 		
 		LDR r1, [r0, #GPIO_PUPDR];
-		BIC r1,r1, #0xC000000;// pin 4
+		BIC r1,r1, #0xC000000;// pin 13
 		ORR r1,r1, #0; // set to no pull-up pull-down
 		STR r1, [r0, #GPIO_PUPDR];
 		
@@ -106,30 +107,55 @@ __main	PROC
 	ORR r1, r1, #(0x1 << (5*2))     ; Set MODER5 to 01 (output)
 	STR r1, [r0, #GPIO_MODER]
 	
+	MOV r5, #0
+	CPSIE i
+
 main_loop
     CMP r5, #1
+    LDR r3, =GPIOA_BASE             
+    LDR r4, [r3, #GPIO_ODR]         
+    BIC r4, r4, #(1 << 5)           ; Clear PA5
+    STR r4, [r3, #GPIO_ODR]         
     BNE main_loop
     MOV r5, #0
     B main_loop
+
 		
 EXTI15_10_IRQHandler PROC
-    PUSH {r4-r11}
+    PUSH {r4-r11, lr}
 
     ; Turn on PA5 (set bit 5)
     LDR r3, =GPIOA_BASE             
-    LDR r4, [r3, #GPIO_ODR]         ; Load current output state
+    LDR r4, [r3, #GPIO_ODR]
     ORR r4, r4, #(1 << 5)           ; Set PA5 high
-    STR r4, [r3, #GPIO_ODR]         ; Write back to ODR
+    STR r4, [r3, #GPIO_ODR]
 
-    ; Clear EXTI13 interrupt pending bit
-    LDR r2, =EXTI_BASE
-    MOV r3, #(1 << 13)
-    STR r3, [r2, #EXTI_PR1]
+    ; Clear EXTI13 pending bit
+    LDR r0, =EXTI_BASE
+    MOV r1, #(1 << 13)
+    STR r1, [r0, #EXTI_PR1]
+	mov r6, #0
+loop
+	cmp r6, #1000
+	addne r6,#1
+	beq back
+	bl delay
+	b loop
 
-    POP {r4-r11}
-    BX lr
+back
+    POP {r4-r11, lr}
+    BX LR
     ENDP
 
+delay	PROC
+	; Delay for software debouncing
+	LDR	r2, =0xFFFF
+delayloop
+	SUBS	r2, #1
+	BNE	delayloop
+	BX LR
+	
+	ENDP
 					
 	ALIGN			
 

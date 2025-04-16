@@ -23,13 +23,12 @@
 	
 	AREA    main, CODE, READONLY
 	EXPORT keypad_Init
-	EXPORT keypad
 	ENTRY			
 				
 keypad_Init	PROC
-
-
-
+	push{lr}
+	BL UART2_Init
+	
 ;;;;;;;;;;;; YOUR CODE GOES HERE	;;;;;;;;;;;;;;;;;;;
 	LDR r0, =RCC_BASE; // load RCC module to r0
 		
@@ -78,20 +77,26 @@ keypad_Init	PROC
 		BIC r1, r1, #0xFC;//pins 1,2,3
 		ORR r1,r1, #0x0; // set to no pull-up pull-down
 		STR r1, [r0, #GPIO_PUPDR];
-
-		LDR r1, [r0, #GPIO_IDR]
-		ORR r1,#0xE
-		STR r1, [r0, #GPIO_IDR]
 		
-	bx lr
-	endp
+		;LED
+	LDR r0, =RCC_BASE
+		LDR r1, [r0, #RCC_AHB2ENR]
+		ORR r1, r1, #0x1         ; Enable GPIOA clock
+		STR r1, [r0, #RCC_AHB2ENR]
+
+		; Set PA5 to output mode
+	LDR r0, =GPIOA_BASE
+		LDR r1, [r0, #GPIO_MODER]
+		BIC r1, r1, #(0x3 << (5*2))     ; Clear MODER5 bits
+		ORR r1, r1, #(0x1 << (5*2))     ; Set MODER5 to 01 (output)
+		STR r1, [r0, #GPIO_MODER]
         
-keypad proc
+keypad 
 	LDR r4,=GPIOB_BASE; //Loading values from GPIOB to r4
 	LDR r5, [r4, #GPIO_IDR]; //Loading to r5 the IDR values (from physical keypad) from r4
-	push {r2, lr}; //Pushing r2 and lr to the stack
+	push {r2}; //Pushing r2 and lr to the stack
 	bl delay; //Branch linking to delay function
-	pop {r2,lr}; //Popping r2 and lr out of the stack
+	pop {r2}
 	cmp r5,#0x1E; //comparing all cols are 1s
 	beq keypad; //Branching to keypad whenever the value from r5 is all ones
 	bne check_col_1; //Branching to check_col_1 as an else case
@@ -256,22 +261,7 @@ displaykey
 	;LDR r0, =str   ; First argument
 	MOV r1, #1    ; Second argument
 	BL USART2_Write
-	bl delay
-	b reset
-	
-reset
-	LDR r0,=GPIOC_BASE;
-		LDR r1, [r0, #GPIO_ODR]
-		BIC r1,#0xF
-		STR r1, [r0, #GPIO_ODR]
-	LDR r0,=GPIOB_BASE;
-		LDR r1, [r0, #GPIO_IDR]
-		bl delay
-		cmp r1,#0x1E; make sure that button is relased before checking for another value
-		bne reset
-		ORR r1,#0xE
-		STR r1, [r0, #GPIO_IDR]
-	
+	pop{lr}
 	bx lr
 
 	ENDP		

@@ -26,14 +26,12 @@
 	EXPORT EXTI15_10_IRQHandler
 	
 	IMPORT keypad_Init
-	IMPORT keypad
 	ENTRY			
 				
 __main	PROC
 	
 	BL System_Clock_Init
 	BL UART2_Init
-	BL keypad_Init
 
 
 
@@ -55,10 +53,11 @@ __main	PROC
 		ORR r1,#0x20
 		STR r1,[r0]
 
-		; Connect PC13
-		LDR r0, =0xE000E104
-		mov r1, #0x100
-		str r1, [r0]
+	; Connect PC13
+	LDR r0, =0xE000E104
+	MOV r1, #0x100
+	STR r1, [r0]
+
 	
 	LDR r0, =SYSCFG_BASE
 		
@@ -69,22 +68,17 @@ __main	PROC
 		
 	LDR r0, =EXTI_BASE
 	
-		LDR R0, =0x40010414   ; EXTI_PR1
-		MOV R1, #(1 << 13)
-		STR R1, [R0]
+		LDR r1, [r0, #EXTI_PR1]
+		MOV r1, #(1 << 13)
+		STR r1, [r0, #EXTI_PR1]
 
-		LDR r1, [r0, #EXTI_FTSR1]; rising edge
+		LDR r1, [r0, #EXTI_FTSR1]
 		ORR r1, #0x2000;
 		STR r1, [r0, #EXTI_FTSR1]
 		
 		LDR r1, [r0, #EXTI_IMR1]
 		ORR r1, #0x2000; 
 		STR r1, [r0, #EXTI_IMR1]
-		
-		; Clear any pending EXTI13 interrupt
-		LDR r1, [r0, #EXTI_PR1]
-		ORR r1, #0x2000
-		STR r1, [r0, #EXTI_PR1]
 	
 	LDR r0,=GPIOC_BASE;//GPIOC
 	
@@ -94,33 +88,46 @@ __main	PROC
 		STR r1, [r0,#GPIO_MODER];
 		
 		LDR r1,[r0,#GPIO_OTYPER];
-		BIC	r1,r1, #0x2000;//pin 4
+		BIC	r1,r1, #0x2000;//pin 13
 		ORR r1,r1, #0x0;//set to push-pull
 		STR r1, [r0,#GPIO_OTYPER];
 		
 		LDR r1, [r0, #GPIO_PUPDR];
-		BIC r1,r1, #0xC000000;// pin 4
-		ORR r1,r1, #0; // set to no pull-up pull-down
+		BIC r1,r1, #0xC000000;// pin 13
+		ORR r1,r1, #0; no pull-up pull-down
 		STR r1, [r0, #GPIO_PUPDR];
-		
-		CPSIE I; enable global interrupts
+	
+	MOV r5, #0
+	CPSIE i; enable global interrupts
 	
 main_loop
-    B main_loop
+	b main_loop
 	ENDP
 		
 EXTI15_10_IRQHandler PROC
-    PUSH {r4-r11}
-    bl keypad
+    PUSH {r4-r11, lr}
+	LDR r6, =GPIOA_BASE
+    LDR r7, [r6, #GPIO_ODR]
+    EOR r7, r7, #(1 << 5)
+    STR r7, [r6, #GPIO_ODR]
+	
+    BL keypad_Init   ; Call keypad initialization (if needed)
 
     ; Clear EXTI13 interrupt pending bit
-    LDR r2, =EXTI_BASE
-    MOV r3, #(1 << 13)
-    STR r3, [r2, #EXTI_PR1]
+    LDR r4, =EXTI_BASE
+    MOV r5, #(1 << 13)
+    STR r5, [r4, #EXTI_PR1]
 
-    POP {r4-r11}
+    ; Toggle PA5
+    LDR r6, =GPIOA_BASE
+    LDR r7, [r6, #GPIO_ODR]
+    EOR r7, r7, #(1 << 5)
+    STR r7, [r6, #GPIO_ODR]
+
+    POP {r4-r11, lr}
     BX lr
     ENDP
+
 
 					
 	ALIGN			
