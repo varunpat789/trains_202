@@ -47,36 +47,36 @@ __main	PROC
 		ORR r1, r1, #RCC_APB2ENR_SYSCFGEN; 0x1
 		STR r1, [r0, #RCC_APB2ENR]
 
-		LDR r0, =0x40010014
+		LDR r0, =0x40010014; SYSCFG_EXTICR4 
 		LDR r1, [r0]
 		BIC r1,#0xF0
 		ORR r1,#0x20
 		STR r1,[r0]
 
 	; Connect PC13
-	LDR r0, =0xE000E104
-	MOV r1, #0x100
+	LDR r0, =0xE000E104; NVIC ISER1
+	MOV r1, #0x100; Enable IRQ40 (EXITI15_10)
 	STR r1, [r0]
 
 	
 	LDR r0, =SYSCFG_BASE
 		
-		LDR r1, [r0, #0x14]
+		LDR r1, [r0, #0x14]; offset for SYSCFG_EXTICR4
 		BIC r1, r1, #SYSCFG_EXTICR4_EXTI13; 
 		ORR r1, r1, #SYSCFG_EXTICR4_EXTI13_PC; 
 		STR r1, [r0, #0x14]
 		
 	LDR r0, =EXTI_BASE
 	
-		LDR r1, [r0, #EXTI_PR1]
+		LDR r1, [r0, #EXTI_PR1]; enable pending register  
 		MOV r1, #(1 << 13)
 		STR r1, [r0, #EXTI_PR1]
 
-		LDR r1, [r0, #EXTI_FTSR1]
+		LDR r1, [r0, #EXTI_FTSR1]; falling edge trigger
 		ORR r1, #0x2000;
 		STR r1, [r0, #EXTI_FTSR1]
 		
-		LDR r1, [r0, #EXTI_IMR1]
+		LDR r1, [r0, #EXTI_IMR1]; unmask to trigger IRQ handler
 		ORR r1, #0x2000; 
 		STR r1, [r0, #EXTI_IMR1]
 	
@@ -106,12 +106,12 @@ main_loop
 		
 EXTI15_10_IRQHandler PROC
     PUSH {r4-r11, lr}
-	LDR r6, =GPIOA_BASE
+	LDR r6, =GPIOA_BASE; turn on green led
     LDR r7, [r6, #GPIO_ODR]
     EOR r7, r7, #(1 << 5)
     STR r7, [r6, #GPIO_ODR]
 	
-    BL keypad_Init   ; Call keypad initialization (if needed)
+    BL keypad_Init; initialize keypad pins 
 
     ; Clear EXTI13 interrupt pending bit
     LDR r4, =EXTI_BASE
@@ -119,7 +119,7 @@ EXTI15_10_IRQHandler PROC
     STR r5, [r4, #EXTI_PR1]
 
     ; Toggle PA5
-    LDR r6, =GPIOA_BASE
+    LDR r6, =GPIOA_BASE; turn off green led
     LDR r7, [r6, #GPIO_ODR]
     EOR r7, r7, #(1 << 5)
     STR r7, [r6, #GPIO_ODR]

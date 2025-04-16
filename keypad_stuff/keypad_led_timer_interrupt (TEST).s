@@ -127,7 +127,7 @@ EXTI15_10_IRQHandler PROC
     ; Turn on PA5 (set bit 5)
     LDR r3, =GPIOA_BASE             
     LDR r4, [r3, #GPIO_ODR]
-    ORR r4, r4, #(1 << 5)           ; Set PA5 high
+    EOR r4, r4, #(1 << 5)           ; Set PA5 high
     STR r4, [r3, #GPIO_ODR]
 
     ; Clear EXTI13 pending bit
