@@ -52,25 +52,25 @@ __main      PROC
       LDR r0,=GPIOB_BASE;//GPIOB=output
       
             LDR r1,[r0, #GPIO_MODER];
-            BIC r1, r1, #0xF0;// clear pins 2,3
-            BIC r1, r1, #0xF000;// clear pins 6,7
-            ORR r1, r1, #0x50;//set all pins to output
-            ORR r1, r1, #0x5000;//set all pins to output
+            BIC r1, r1, #0xF00;// clear pins 4,5
+            BIC r1, r1, #0x3C000000;// clear pins 13,14
+            ORR r1, r1, #0x500;//set all pins to output
+            ORR r1, r1, #0x18000000;//set all pins to output
             STR r1, [r0,#GPIO_MODER];
       
             LDR r1,[r0,#GPIO_OTYPER];
-            BIC   r1,r1, #0xCC;//clear pins 2,3,6,7
-            ORR r1,r1, #0x0;//set to push-pull
+            BIC r1,r1, #0x6030;//clear pins 4,5,13,14
+            ORR r1,r1, #0x0000;//set to push-pull
             STR r1, [r0,#GPIO_OTYPER];
             
             LDR r1, [r0, #GPIO_PUPDR];
-            BIC r1, r1, #0xF0;// clear pins 2,3
-            BIC r1, r1, #0xF000;// clear pins 6,7
-            ORR r1,r1, #0x0; // set to no pull-up pull-down
+            BIC r1, r1, #0xF00;// clear pins 4,5
+            BIC r1, r1, #0x3C000000;// clear pins 13,14
+            ORR r1,r1, #0x0000000; // set to no pull-up pull-down
             STR r1, [r0, #GPIO_PUPDR];
             
             LDR r1, [r0,#GPIO_ODR];
-            BIC r1,r1, #0xFF;//clear pins 3-0
+            BIC r1,r1, #0xFFFFFFFF;//clear pins 14-0
             b checkStation
 
 store

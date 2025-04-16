@@ -26,26 +26,7 @@ __main	PROC
 	;Registers used: r0, r1, r2, r7, r8, r9, r10, r11
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
-	PUSH{r7,r8,r10,r11,r12} //want to listen on r9(direction)
-
-	BL main_loop
-
-	;cleanup, set everything to 0 for safety
-	MOV r11, #0
-	MOV r10, #0
-	MOV r0,  #0
-	MOV r1,  #0
-	MOV r2,  #0
-	MOV r9,  #0
-    MOV r7,  #0
-    MOV r8,  #0
-
-	POP{r7,r8,r10,r11,r12}
-
-	BX LR
-	
-	
-main_loop
+	PUSH{r5,r6,r7,r8,r11} 			;want to listen on r9(direction) and r10(stop), need r12 as it holds base address
 	
 	MOV r10, #215                   ;set max rotation counter before we enter subroutine. change as neccessary
 	
@@ -59,7 +40,15 @@ main_loop
 	CMP r0, #1              		;compare flag with 1
 	BEQ full_step_cycle_forwards    ;if we have set flag to 1, then we want to initaite forward movement
 	CMP r0, #0						;compare flag with 0
-	BEQ full_step_cycle_forwards    ;if we have set flag to 0, initiate reverse movement
+	BEQ full_step_cycle_reverse   	;if we have set flag to 0, initiate reverse movement
+	
+	;update train station
+	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
+	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
+	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
+	LDRNE r10, [r11]         
+	
+	POP{r5,r6,r7,r8,r11}	; pop back registers
 	
 	BX LR                            ;exit once rotation is done
 	
