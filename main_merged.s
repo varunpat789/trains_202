@@ -208,27 +208,32 @@ seven_segment
 	
 
 stationA; when we get to station A, we will be moving the correct value to output A
-	mov r1, #0x77			   ; load A if at station A 
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x0010        ; set Pins 13(D) and Pin 4(B) high for 1010 to DCBA
+	ORR r1, r1, #0x2000        ; set Pins 13(D) and Pin 4(B) high for 1010 to DCBA
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
 	b exit					   ; return 
             
 stationB; when we get to station B, we will be moving the correct value to output B
-	mov r1, #0x7C			   ; load B if at station B
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x0010        ; set Pins 13(D), Pin 14(C) and Pin 4(B) high for 1011 to DCBA
+	ORR r1, r1, #0x6000        ; set Pins 13(D), Pin 14(C) and Pin 4(B) high for 1011 to DCBA
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
-	b exit					   ; return
+	b exit; return
 
 stationC; when we get to station C, we will be moving the correct value to output C
-	mov r1, #0x39			   ; load C if at station C
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x0020        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
+	ORR r1, r1, #0x2000        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
 	b exit
 	
 exit 
 	pop {lr, r0, r1, r2, r3}	; pop from seven_segment main
 	BX lr
-	
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
