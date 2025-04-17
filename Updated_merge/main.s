@@ -133,7 +133,7 @@ automatic
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 train_motor
-
+	PUSH {LR}
 	PUSH{r4}
 	MOV r4, r9     						;load in flag for what direction to go
 	PUSH{r0,r5,r6,r7,r8,r9,r11} 		;want to listen on r9(direction) and r10(stop), need r12 as it holds base address
@@ -184,6 +184,7 @@ full_forwards_controls
 	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
 	POP{r4}
 	
+	POP{LR}
 	BX LR                            ;exit once rotation is done
 
 full_step_cycle_forwards
@@ -266,6 +267,7 @@ full_reverse_controls
 	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
 	POP{r4}
 	
+	POP{LR}
 	BX LR                            ;exit once rotation is done
 
 full_step_cycle_reverse
