@@ -42,8 +42,8 @@ __main	PROC
 	CMP r0, #0						;compare flag with 0
 	BEQ full_step_cycle_reverse   	;if we have set flag to 0, initiate reverse movement
 	
-	;update train station
-	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
+	;update next train station
+	CMP r10, #21					; if next stop is at station B on way back, move stop to beginning of array, station A
 	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
 	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
 	LDRNE r10, [r11]         

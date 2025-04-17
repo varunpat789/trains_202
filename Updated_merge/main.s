@@ -586,10 +586,55 @@ skip3
 next
 
     ; flags go here
+
+	;next desired station in r1, current desired station in r10
+	
+	;FSM logic
+	
+	;PSUEDO   if(current_next == 3 && desired_next == 1): then interrupt_flag2 = 1
+	CMP r10, #3
+	BL EQ flag2_check1
+
+	;PSUEDO   if(current_next == 1 && desired_next == 3): then interrupt_flag2 = 1
+	CMP r10, #1
+	BL EQ flag2_check2
+
+	; PSUEDO if(current_next == 2): then interrupt_flag1 = 1
+	CMP r10, #2
+	BL EQ flag1_check1
+
+	CMP r10, #21
+	BL EQ flag1_check2
+
 	bl printEndOverride
 	POP{lr}
 	
     BX lr
-    ENDP
-		
+
+flag2_check1 
+
+	CMP r1, #1    ;see if desired next is 1
+	MOVEQ r5, #1  ; if so, set interrupt flag2 to high 
+	BX LR         ;return back
+
+flag2_check2 
+
+	CMP r1, #3    ;see if desired next is 1
+	MOVEQ r5, #1  ; if so, set interrupt flag2 to high 
+	BX LR         ;return back
+
+flag1_check1 
+
+	CMP r1, #3    ;see if desired next is 1
+	MOVEQ r6, #1  ; if so, set interrupt flag1 to high 
+	BX LR         ;return back
+
+flag1_check2 
+
+	CMP r1, #1    ;see if desired next is 1
+	MOVEQ r6, #1  ; if so, set interrupt flag1 to high 
+	BX LR         ;return back
+
+	ENDP
+
 	END

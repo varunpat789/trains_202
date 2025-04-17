@@ -19,7 +19,7 @@ __main	PROC
     ; PORT B: Input for Keypad, Ouput for Seven Segment
     ; PORT C: Output for Keypad, Output for Motor1, Output for Motor2
 	; GLOBALS & FLAGS: Stops(A-C) defined as data(DCD), current stop stored in r12/r11/r10
-    ;                  r10 stores the current stop, r11 and r12 are used for proper train movement
+    ;                  r10 stores future stop, r11 and r12 are used for proper train movement
     ;                  Direction stored in r9(1 = forward, 0 reverse)
     ;                  Status stored in r8(1 = moving, 0 = stopped)
     ;                  Count stored in r7(increments by 4 to access stop addresses)
@@ -44,9 +44,9 @@ __main	PROC
 
     ; Define intial conditions
     
-    ; Start from stop 1(A)
+    ; Define next stop as B, start of A
     LDR r12, =stops             ;load in address of data
-    LDR r11, [r12]              ;load in value, stop 1
+    LDR r11, [r12, #4]          ;load in value, stop 2(B)
 
     ;Set Direction as forward
     MOV r9, #1                 ; 1 == forward, 0 == reverse
@@ -74,13 +74,9 @@ automatic
 
     BLNE doors_motor                ; branch to open doors, only if stoppingb
 
-	MOVNE r5, #1                    ; set flag for close doors
-
 	BLNE long_delay                 ; branch to long delay
 
 	BLNE doors_motor                ; branch to close doors,
-
-	MOVNE r5, #0					; set flag for open doors
 
     MOVNE r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
 
