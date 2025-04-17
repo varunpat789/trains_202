@@ -133,68 +133,105 @@ automatic
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 train_motor
-	
-	PUSH{r5,r6,r7,r8,r11} 			;want to listen on r9(direction) and r10(stop), need r12 as it holds base address
-	MOV r10, #215                   ;set max rotation counter before we enter subroutine. change as neccessary
+
+	PUSH{r4}
+	MOV r4, r9     						;load in flag for what direction to go
+	PUSH{r0,r5,r6,r7,r8,r9,r11} 		;want to listen on r9(direction) and r10(stop), need r12 as it holds base address
+
+	MOV r10, #215						; Initialize max rotation threshold, Full step requires 215 rotations
+	MOV r9, #0							; Initialize on/off flag, on = 1, off = 0
+	MOV r8, #225						; delay/speed factor (higher factor = slower stepper)
+	MOV r7, #0 							; Current rotation state (1 = accel, 2 = steady, 3 = deccel)
 	
 	;need this for when we call again, if reg 11 is still 215 from last time, then we need to reset
-	CMP r11, r10					; Check if the max number of rotations has occured
-	MOVEQ r11, #0 					; Reset the rotation counter if we have reached 215 sequences
+	CMP r11, r10						; Check if the max number of rotations has occured
+	MOVEQ r11, #0 						; Reset the rotation counter if we have reached 215 sequences
 	
 	;check to see what direction we have specified in main
-	MOV r0, r9     					;load in flag for what direction to go    		
-	CMP r0, #1              		;compare flag with 1
-	BEQ full_step_cycle_forwards    ;if we have set flag to 1, then we want to initaite forward movement
-	CMP r0, #0						;compare flag with 0
-	BEQ full_step_cycle_reverse   	;if we have set flag to 0, initiate reverse movement
+	MOV r4, r9     						; load in flag for what direction to go
+	PUSH{r9}    		
+	CMP r4, #1              			; compare flag with 1
+	BEQ full_forwards_controls    		; if we have set flag to 1, then we want to initaite forward movement
+	CMP r4, #0							; compare flag with 0
+	BEQ full_reverse_controls   		; if we have set flag to 0, initiate reverse movement
+
+full_forwards_controls
 	
+	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #1
+	BL printAccel
+	BL full_step_cycle_forwards ; Enter forwards loop
+
+	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #2
+	BL full_step_cycle_forwards ; Enter forwards loop
+	
+	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #2
+	BL full_step_cycle_forwards ; Enter forwards loop
+	
+	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #3
+	BL printDecel
+	BL full_step_cycle_forwards ; Enter forwards loop
+
 	;update train station
 	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
 	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
 	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
 	LDRNE r10, [r11]         
 	
-	POP{r5,r6,r7,r8,r11}	; pop back registers
+	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
+	POP{r4}
 	
 	BX LR                            ;exit once rotation is done
-	
 
 full_step_cycle_forwards
-	push{LR}					; Push the link register to the stack
+	push{LR}					; Push the link register to the stack	
 	
-	MOV r11, #0					; Initialize current rotation counter
+	CMP r7, #1	; check if accel
+	SUBEQ r8, r8, #1 ; dec speed factor to increase stepper speed
 	
-	LDR r0, =GPIOB_BASE
+	CMP r7, #3 	; check if decel
+	ADDEQ r8, r8, #1 ; inc speed factor to dec stepper speed
+	
+	;Set ODR for C4 (A), C6 (A'), C8 (B), C9 (B') for output
+	
+	; A, B'
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000084
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000210
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train_motor
 
-	LDR r0, =GPIOB_BASE
+	; A, B
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000044	
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000110
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train_motor
 
-	LDR r0, =GPIOB_BASE
+	; A', B
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000048
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000140
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train_motor
 
-	LDR r0, =GPIOB_BASE
+	; A', B'
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000088
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000240
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train_motor
 	
 	POP{LR}						; Pop the link register from the stack
 
@@ -203,45 +240,80 @@ full_step_cycle_forwards
 	BXGT LR						; If so, return to the main function
 	
 	B full_step_cycle_forwards	; Else, repeat
-	
-	LTORG
-	
-full_step_cycle_reverse
-	push{LR}					; Push the link register to the stack
+
+full_reverse_controls
 	
 	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #1
+	BL printAccel
+	BL full_step_cycle_reverse ; Enter forwards loop
 	
-	LDR r0, =GPIOB_BASE
+	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #2
+	BL full_step_cycle_reverse ; Enter forwards loop
+	
+	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #3
+	BL printDecel
+	BL full_step_cycle_reverse ; Enter forwards loop
+
+	;update train station
+	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
+	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
+	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
+	LDRNE r10, [r11]         
+	
+	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
+	POP{r4}
+	
+	BX LR                            ;exit once rotation is done
+
+full_step_cycle_reverse
+	push{LR}			; Push the link register to the stack
+	
+	CMP r7, #1			; check if accel
+	SUBEQ r8, r8, #1 	; dec speed factor to increase stepper speed
+	
+	CMP r7, #3 			; check if decel
+	ADDEQ r8, r8, #1 	; inc speed factor to dec stepper speed
+	
+	;Set ODR for C4 (A), C6 (A'), C8 (B), C9 (B') for output
+	
+	; A', B'
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000088
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000240
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train_motor
 	
-	LDR r0, =GPIOB_BASE
+	; A', B
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000048
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000140
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
-	
-	LDR r0, =GPIOB_BASE
+	BL delay_train_motor
+
+	; A, B
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000044	
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000110
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train_motor
 	
-	LDR r0, =GPIOB_BASE
+	; A, B'
+	LDR r0, =GPIOC_BASE
 	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x000000CC
-	ORR r1, r1, #0x00000084
+	BIC r1, r1, #0x00000350
+	ORR r1, r1, #0x00000210
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train_motor
 	
 	POP{LR}						; Pop the link register from the stack
 	
@@ -251,6 +323,35 @@ full_step_cycle_reverse
 	
 	B full_step_cycle_reverse	; Else, repeat
 
+
+printAccel
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =accel			; Load text
+	MOV r1, #15    			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+printDecel
+	PUSH{r0, r1, LR}		; Push to stack
+	LDR r0, =decel			; Load text
+	MOV r1, #15    			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1, LR}			; Pop from stack
+	BX LR					; Return from branch
+
+delay_train_motor	PROC
+	; Delay for software debouncing
+	;MOV r8, #10
+	LDR	r2, =0xFFF
+	MUL r2, r2, r8
+	; Keep smallest (fastest) delay at #10
+	; Keep largest (slowest) factor at #225
+	
+delayloop_train_motor
+	SUBS	r2, #1
+	BNE	delayloop_train_motor
+	BX LR
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

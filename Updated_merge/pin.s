@@ -22,37 +22,14 @@ pin_init	PROC
 	STR r1, [r0, #RCC_AHB2ENR]     	;store result back to clock reg
 
 	; TRAIN MOTOR
+	; Set the modes of C4 (A), C6 (A'), C8 (B), C9 (B') for output
 	LDR r0, =GPIOC_BASE        		;load in base module
-	LDR r1, [r0, #GPIO_MODER]      	;load moad register
-	BIC r1, r1, #0x000C0000         ;clear bits for PC9, 18-19
-	ORR r1, r1, #0x00080000    		;set 01 for pin 9 for output
-	
-	BIC r1, r1, #0x00030000         ;clear bits for PC8, 16-17
-	ORR r1, r1, #0x00010000    		;set 01 for pin 8 for output
-	
-	BIC r1, r1, #0x00003000         ;clear bits for PC6, 12-13
-	ORR r1, r1, #0x00001000    		;set 01 for pin 6 for output
-	
-	BIC r1, r1, #0x00000C00         ;clear bits for PC5, 10-11
-	ORR r1, r1, #0x00000800    		;set 01 for pin 13 for output
-	STR r1, [r0,#GPIO_MODER]       	;store result back to moder
-	
-	;set the pupdr of PC9, PC8, PC6, PC5 
-	LDR r0, =GPIOC_BASE        		;load in base module
-	LDR r1, [r0, #GPIO_PUPDR]      	;load moad register
-	BIC r1, r1, #0x000C0000         ;clear bits for PC9, 18-19
-	ORR r1, r1, #0x00080000    		;set 01 for pin 9 for PU/PD
-	
-	BIC r1, r1, #0x00030000         ;clear bits for PC8, 16-17
-	ORR r1, r1, #0x00010000    		;set 01 for pin 8 for PU/PD
-	
-	BIC r1, r1, #0x00003000         ;clear bits for PC6, 12-13
-	ORR r1, r1, #0x00001000    		;set 01 for pin 6 for PU/PD
-	
-	BIC r1, r1, #0x00000C00         ;clear bits for PC5, 10-11
-	ORR r1, r1, #0x00000800    		;set 01 for pin 13 for PU/PD
-	STR r1, [r0,#GPIO_PUPDR]       	;store result back to pupdr
-
+	LDR r1, [r0, #GPIO_MODER]      	;load in moder                
+	BIC r1, r1, #0x00006300         ;clear all bits of pins 4,6	 
+	BIC r1, r1, #0x000F0000         ;clear all bits of pins 8,9
+	ORR r1, r1, #0x00001100     	;set pins 4,6 to 01 for output
+	ORR r1, r1, #0x00050000     	;set pins 8,9 to 01 for output
+	STR r1, [r0, #GPIO_MODER]      	;store result back to moder
 
     ;DOOR MOTOR
 	LDR r0, =GPIOC_BASE        		;load in base module
