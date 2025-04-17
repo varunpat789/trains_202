@@ -90,24 +90,24 @@ automatic
 
 	CMP r4, #0                       ;if we do not want to ignore, execute al subroutines
 
-    BL EQ seven_segment              ; branch to seven_segment sub to display current stop
+    BLEQ seven_segment              ; branch to seven_segment sub to display current stop
 
-    BL EQ open               		 ; branch to open doors, only if stoppingb
+    BLEQ open               		 ; branch to open doors, only if stoppingb
 
-	BL EQ close               		 ; branch to close doors,
+	BLEQ close               		 ; branch to close doors,
 
-    MOV EQ r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
+    MOVEQ r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
 
 	CMP r4, #2                         ;if ignore2, don't carry out train movement
-    BL NE green_led                    ; turn on green led to indicate movement, keep on
+    BLNE green_led                    ; turn on green led to indicate movement, keep on
 
-    BL NE train_motor                  ; move the train either forward or backward
+    BLNE train_motor                  ; move the train either forward or backward
 
 	CMP r4, #0                       ;set back ignore flag
 
-    MOV EQ r8, #0                    ; set status to 0 to indicate we've stopped moving
+    MOVEQ r8, #0                    ; set status to 0 to indicate we've stopped moving
 
-    BL EQ green_led                  ; once train is done moving, turn off green led
+    BLEQ green_led                  ; once train is done moving, turn off green led
 
 	;update train station
 	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
@@ -119,34 +119,34 @@ automatic
 
 	CMP r4, #0                       ;check if our ignore_count is non-zero
 
-	BL GT ignore_flag_handler        ;if ignore_count > 0, do logic for ignore flag
+	BLGT ignore_flag_handler_end        ;if ignore_count > 0, do logic for ignore flag
 
     B automatic                      ; continue this loop indefinitely, manual override will be interrupt
 
 
 interrup_flags
 	CMP r7, #1                      ;if IGNORE2 flag is high, set reverse direction then do same thing as ignore 1, then set ignore1, skip 2 stops 
-	MOV EQ r9, #0                    ;set reverse direction
-	MOV EQ r4, #2                    ;want to ignore two times
+	MOVEQ r9, #0                    ;set reverse direction
+	MOVEQ r4, #2                    ;want to ignore two times
 
 	CMP r6, #1                      ;if IGNORE1 flag is high, don't change status,movement, or seven-seg; only check at the beginning, we can't
-	MOV EQ r4, #1                    ;want to ignore one time
+	MOVEQ r4, #1                    ;want to ignore one time
 
 	BX LR
 
 configure_direction
 
 	CMP r10, #21                     ;if next stop is station B on way back, set reverse
-	MOV EQ r9, #0                    ;set r9=0 for reverse
+	MOVEQ r9, #0                    ;set r9=0 for reverse
 
 	CMP r10, #1                      ;if next stop is station A, way back, set reverse
-	MOV EQ r9, #0                    ;set r9=0 for reverse
+	MOVEQ r9, #0                    ;set r9=0 for reverse
 
 	CMP r10, #3                      ;if next stop is station C, going there, set forward
-	MOV EQ r9, #1
+	MOVEQ r9, #1
 
 	CMP r10, #2						 ;if next stop is station B, going there, set forward
-	MOV EQ r9, #1
+	MOVEQ r9, #1
 
 	BX LR
 
@@ -154,8 +154,8 @@ ignore_flag_handler_end
 							
 	SUB r4, #1                       ;num_times_ignore = num_times_ignore - 1, but only if non zero, set flags
 	CMP r4, #0                       ;if we are done ignoring, set ignore flags back to o
-	MOV EQ r7, #0					 ; set ignore2 back to 0 so we don't always ignore
-	MOV EQ r6, #0				     ; set ignore1 back to 0
+	MOVEQ r7, #0					 ; set ignore2 back to 0 so we don't always ignore
+	MOVEQ r6, #0				     ; set ignore1 back to 0
 
 	BX LR
 
@@ -247,7 +247,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000210
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 
 	; A, B
 	LDR r0, =GPIOC_BASE
@@ -256,7 +256,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000110
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 
 	; A', B
 	LDR r0, =GPIOC_BASE
@@ -265,7 +265,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000140
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 
 	; A', B'
 	LDR r0, =GPIOC_BASE
@@ -274,7 +274,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000240
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 	
 	POP{LR}						; Pop the link register from the stack
 
@@ -324,7 +324,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000240
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 	
 	; A', B
 	LDR r0, =GPIOC_BASE
@@ -333,7 +333,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000140
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 
 	; A, B
 	LDR r0, =GPIOC_BASE
@@ -342,7 +342,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000110
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 	
 	; A, B'
 	LDR r0, =GPIOC_BASE
@@ -351,7 +351,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000210
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay_train_motor
+	BL delay
 	
 	POP{LR}						; Pop the link register from the stack
 	
@@ -361,35 +361,6 @@ full_step_cycle_reverse
 	
 	B full_step_cycle_reverse	; Else, repeat
 
-
-printAccel
-	PUSH{r0, r1, LR}		; Push to stack
-	LDR r0, =accel			; Load text
-	MOV r1, #15    			; Load length of text
-	BL USART2_Write			; Branch to C method to write to TeraTerm
-	POP{r0, r1, LR}			; Pop from stack
-	BX LR					; Return from branch
-
-printDecel
-	PUSH{r0, r1, LR}		; Push to stack
-	LDR r0, =decel			; Load text
-	MOV r1, #15    			; Load length of text
-	BL USART2_Write			; Branch to C method to write to TeraTerm
-	POP{r0, r1, LR}			; Pop from stack
-	BX LR					; Return from branch
-
-delay_train_motor	PROC
-	; Delay for software debouncing
-	;MOV r8, #10
-	LDR	r2, =0xFFF
-	MUL r2, r2, r8
-	; Keep smallest (fastest) delay at #10
-	; Keep largest (slowest) factor at #225
-	
-delayloop_train_motor
-	SUBS	r2, #1
-	BNE	delayloop_train_motor
-	BX LR
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -556,6 +527,51 @@ press
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DOOR_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+seven_segment
+	push {lr, r0, r1, r2, r3}
+	cmp r10, #1                  	; see what station we are at
+	beq stationA					; if r10 is 1, we are at station A	and branch accordinl
+	cmp r10, #2                   
+	beq stationB					; if r10 is 1 or 21(station B on return direction), we are station B
+	cmp r10, #21
+	beq stationB
+	cmp r10, #3
+	beq stationC					; if r10 is 3, we are station C
+	b exit							; if r10 does not hold any of these values, exit 
+	
+
+stationA; when we get to station A, we will be moving the correct value to output A
+	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x2000        ; set Pins 13(D) high for 0001 to DCBA
+	ORR r1, r1, #0x0000        
+	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
+	b exit					   ; return 
+            
+stationB; when we get to station B, we will be moving the correct value to output B
+	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x0010        ; set Pin 4(B) high for 0010 to DCBA
+	ORR r1, r1, #0x0000        
+	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
+	b exit; return
+
+stationC; when we get to station C, we will be moving the correct value to output C
+	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x0010        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
+	ORR r1, r1, #0x2000        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
+	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
+	b exit
+	
+exit 
+	pop {lr, r0, r1, r2, r3}	; pop from seven_segment main
+	BX lr
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;INTERRUPT START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 stop b stop
 ; Replace ECE1770 with your last name
 
@@ -629,18 +645,18 @@ next
 	
 	;PSUEDO   if(current_next == 3 && desired_next == 1): then interrupt_flag2 = 1
 	CMP r10, #3
-	BL EQ flag2_check1
+	BLEQ flag2_check1
 
 	;PSUEDO   if(current_next == 1 && desired_next == 3): then interrupt_flag2 = 1
 	CMP r10, #1
-	BL EQ flag2_check2
+	BLEQ flag2_check2
 
 	; PSUEDO if(current_next == 2): then interrupt_flag1 = 1
 	CMP r10, #2
-	BL EQ flag1_check1
+	BLEQ flag1_check1
 
 	CMP r10, #21
-	BL EQ flag1_check2
+	BLEQ flag1_check2
 
 	bl printEndOverride
 	POP{lr}
