@@ -455,7 +455,7 @@ EXTI15_10_IRQHandler PROC
 	
 	PUSH {lr}
 
-	cmp r0, #49
+	cmp r0, #49; override 1
 	moveq r1, #1
 	beq o1
 	b skip1
@@ -463,7 +463,7 @@ o1
 	bl print_over1
 	b next
 skip1
-	cmp r0, #50
+	cmp r0, #50; override 2
 	moveq r1, #2
 	beq o2
 	b skip2
@@ -471,7 +471,7 @@ o2
 	bl print_over2
 	b next
 skip2
-	cmp r0, #51
+	cmp r0, #51; override 3
 	moveq r1, #3
 	beq o3
 	b skip3
@@ -481,6 +481,8 @@ o3
 skip3
 	
 next
+
+    ; flags go here
 	bl printEndOverride
 	POP{lr}
 	
