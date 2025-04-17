@@ -198,37 +198,42 @@ seven_segment
 	push {lr, r0, r1, r2, r3}
 	cmp r10, #1                  	; see what station we are at
 	beq stationA					; if r10 is 1, we are at station A	and branch accordinl
-	cmp r10, #0x2                   
+	cmp r10, #2                   
 	beq stationB					; if r10 is 1 or 21(station B on return direction), we are station B
-	cmp r10, #0x21
+	cmp r10, #21
 	beq stationB
-	cmp r10, #0x3
+	cmp r10, #3
 	beq stationC					; if r10 is 3, we are station C
 	b exit							; if r10 does not hold any of these values, exit 
 	
 
 stationA; when we get to station A, we will be moving the correct value to output A
-	mov r1, #0x77			   ; load A if at station A 
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x2000        ; set Pins 13(D) high for 0001 to DCBA
+	ORR r1, r1, #0x0000        
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
 	b exit					   ; return 
             
 stationB; when we get to station B, we will be moving the correct value to output B
-	mov r1, #0x7C			   ; load B if at station B
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x0010        ; set Pin 4(B) high for 0010 to DCBA
+	ORR r1, r1, #0x0000        
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
-	b exit					   ; return
+	b exit; return
 
 stationC; when we get to station C, we will be moving the correct value to output C
-	mov r1, #0x39			   ; load C if at station C
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	ORR r1, r1, #0x0010        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
+	ORR r1, r1, #0x2000        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
 	b exit
 	
 exit 
 	pop {lr, r0, r1, r2, r3}	; pop from seven_segment main
 	BX lr
-	
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
