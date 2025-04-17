@@ -45,6 +45,7 @@ __main	PROC
     ;                  Count stored in r7(increments by 4 to access stop addresses)
 	;				   Manual override flag stored in r6
 	;				   Doors flag stored in r5
+	;				   IGNORE count in r4
     ; 
     ; Subroutine Doc:
     ;     seven_Segment: Read current stop(r10) and displays it to seven segment display
@@ -85,34 +86,80 @@ __main	PROC
 automatic
 
     ; automatic functionining of train
+	BL interrup_flags                ;check if interrupt has been called
 
-	;considerations: push and pop CMP flag 
-	CMP r6, #1                      ;if IGNORE flag(manual) is high, don't change status,movement, or seven-seg
-									; only check at the beginning, we can't 
+	CMP r4, #0                       ;if we do not want to ignore, execute al subroutines
 
-    ;BLNE seven_segment              ; branch to seven_segment sub to display current stop
+    BL EQ seven_segment              ; branch to seven_segment sub to display current stop
 
-    BLNE open               		 ; branch to open doors, only if stoppingb
+    BL EQ open               		 ; branch to open doors, only if stoppingb
 
-	MOVNE r5, #1                    ; set flag for close doors
+	BL EQ close               		 ; branch to close doors,
 
-	BLNE close               		 ; branch to close doors,
+    MOV EQ r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
 
-	MOVNE r5, #0					; set flag for open doors
+	CMP r4, #2                         ;if ignore2, don't carry out train movement
+    BL NE green_led                    ; turn on green led to indicate movement, keep on
 
-    MOVNE r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
+    BL NE train_motor                  ; move the train either forward or backward
 
-    ;BLNE seven_segment              ; call seven_segment again to change display
+	CMP r4, #0                       ;set back ignore flag
 
-    BL green_led                    ; turn on green led to indicate movement, keep on
+    MOV EQ r8, #0                    ; set status to 0 to indicate we've stopped moving
 
-    BL train_motor                  ; move the train either forward or backward
+    BL EQ green_led                  ; once train is done moving, turn off green led
 
-    MOVNE r8, #0                    ; set status to 0 to indicate we've stopped moving
+	;update train station
+	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
+	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
+	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
+	LDRNE r10, [r11]
 
-    BLNE green_led                  ; once train is done moving, turn off green led
+	BL configure_direction           ; figure out direction for next run
+
+	CMP r4, #0                       ;check if our ignore_count is non-zero
+
+	BL GT ignore_flag_handler        ;if ignore_count > 0, do logic for ignore flag
 
     B automatic                      ; continue this loop indefinitely, manual override will be interrupt
+
+
+interrup_flags
+	CMP r7, #1                      ;if IGNORE2 flag is high, set reverse direction then do same thing as ignore 1, then set ignore1, skip 2 stops 
+	MOV EQ r9, #0                    ;set reverse direction
+	MOV EQ r4, #2                    ;want to ignore two times
+
+	CMP r6, #1                      ;if IGNORE1 flag is high, don't change status,movement, or seven-seg; only check at the beginning, we can't
+	MOV EQ r4, #1                    ;want to ignore one time
+
+	BX LR
+
+configure_direction
+
+	CMP r10, #21                     ;if next stop is station B on way back, set reverse
+	MOV EQ r9, #0                    ;set r9=0 for reverse
+
+	CMP r10, #1                      ;if next stop is station A, way back, set reverse
+	MOV EQ r9, #0                    ;set r9=0 for reverse
+
+	CMP r10, #3                      ;if next stop is station C, going there, set forward
+	MOV EQ r9, #1
+
+	CMP r10, #2						 ;if next stop is station B, going there, set forward
+	MOV EQ r9, #1
+
+	BX LR
+
+ignore_flag_handler_end
+							
+	SUB r4, #1                       ;num_times_ignore = num_times_ignore - 1, but only if non zero, set flags
+	CMP r4, #0                       ;if we are done ignoring, set ignore flags back to o
+	MOV EQ r7, #0					 ; set ignore2 back to 0 so we don't always ignore
+	MOV EQ r6, #0				     ; set ignore1 back to 0
+
+	BX LR
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -174,12 +221,7 @@ full_forwards_controls
 	MOV r7, #3
 	BL printDecel
 	BL full_step_cycle_forwards ; Enter forwards loop
-
-	;update train station
-	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
-	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
-	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
-	LDRNE r10, [r11]         
+   
 	
 	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
 	POP{r4}
@@ -256,13 +298,7 @@ full_reverse_controls
 	MOV r11, #0					; Initialize current rotation counter
 	MOV r7, #3
 	BL printDecel
-	BL full_step_cycle_reverse ; Enter forwards loop
-
-	;update train station
-	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
-	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
-	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
-	LDRNE r10, [r11]         
+	BL full_step_cycle_reverse ; Enter forwards loop    
 	
 	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
 	POP{r4}
