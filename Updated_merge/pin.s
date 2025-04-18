@@ -31,38 +31,6 @@ pin_init	PROC
 	ORR r1, r1, #0x00050000     	;set pins 8,9 to 01 for output
 	STR r1, [r0, #GPIO_MODER]      	;store result back to moder
 
-    ;DOOR MOTOR
-	LDR r0, =GPIOC_BASE        		;load in base module
-	LDR r1, [r0, #GPIO_MODER]      	;load moad register
-	BIC r1, r1, #0x00300000         ;clear bits for PC10, 20-21
-	ORR r1, r1, #0x00100000    		;set 01 for pin 10 for output
-	
-	BIC r1, r1, #0x00C00000         ;clear bits for PC11, 22-23
-	ORR r1, r1, #0x00800000    		;set 01 for pin 11 for output
-	
-	BIC r1, r1, #0x03000000         ;clear bits for PC12, 24-25
-	ORR r1, r1, #0x01000000    		;set 01 for pin 12 for output
-	
-	BIC r1, r1, #0x30000000         ;clear bits for PC14, 28-29
-	ORR r1, r1, #0x10000000    		;set 01 for pin 14 for output
-	STR r1, [r0,#GPIO_MODER]       	;store result back to moder
-	
-	;set the pupdr of PC9, PC8, PC6, PC5 
-	LDR r0, =GPIOC_BASE        		;load in base module
-	LDR r1, [r0, #GPIO_PUPDR]      	;load moad register
-	BIC r1, r1, #0x00300000         ;clear bits for PC9, 18-19
-	ORR r1, r1, #0x00100000    		;set 01 for pin 9 for PU/PD
-	
-	BIC r1, r1, #0x00C00000         ;clear bits for PC8, 16-17
-	ORR r1, r1, #0x00800000    		;set 01 for pin 8 for PU/PD
-	
-	BIC r1, r1, #0x03000000         ;clear bits for PC6, 12-13
-	ORR r1, r1, #0x01000000    		;set 01 for pin 6 for PU/PD
-	
-	BIC r1, r1, #0x30000000         ;clear bits for PC5, 10-11
-	ORR r1, r1, #0x10000000    		;set 01 for pin 13 for PU/PD
-	STR r1, [r0,#GPIO_PUPDR]       	;store result back to pupdr
-
     
     ; GREEN LED
 	LDR r1, =GPIOC_BASE        		;load in base module
@@ -78,6 +46,9 @@ pin_init	PROC
 	ORR r2, r2, #0x08000000    		;set 01 for pin 13 for PU/PD
 	STR r2, [r1,#GPIO_PUPDR]       	;store result back to pupdr
 	
+
+	;interrupt
+
 	;enable system interrupt clk	
 	LDR r0, =RCC_BASE
 	LDR r1, [r0, #RCC_APB2ENR]
@@ -132,6 +103,70 @@ pin_init	PROC
 		BIC r1,r1, #0xC000000;// pin 13
 		ORR r1,r1, #0; no pull-up pull-down
 		STR r1, [r0, #GPIO_PUPDR];
+
+
+
+	;door motor pins
+	;	Enable clocks for GPIOC
+	LDR r0, =RCC_BASE; // load RCC module to r0
+		
+		LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
+		ORR r1,r1, #0x4; // enable GPIOC
+		STR r1, [r0,#RCC_AHB2ENR];
+	
+	; Set GPIOC pins 10,11,12,14 as output pins
+	LDR r0,=GPIOC_BASE;//GPIOB
+
+	LDR r1,[r0, #GPIO_MODER];
+	BIC r1, #0x00F00000;pins 10,11
+	BIC r1, #0x0000C000; pin 7
+	BIC r1, #0x03000000; pin 12
+	ORR r1, #0x00500000;//set all pins to output
+	ORR r1, #0x00004000
+	ORR r1, #0x01000000
+	STR r1, [r0,#GPIO_MODER];
+
+	;seven segment
+	LDR r0, =RCC_BASE; // load RCC module to r0
+
+	LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
+	ORR r1,r1, #0x2; // enable GPIOB
+	STR r1, [r0,#RCC_AHB2ENR];
+ 
+	LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
+	ORR r1,r1, #0x4; // enable GPIOC
+	STR r1, [r0,#RCC_AHB2ENR];
+
+	LDR r0,=GPIOC_BASE;//GPIOC=input
+
+	LDR r1,[r0, #GPIO_MODER];
+	BIC r1, r1, #0xC000000;
+	ORR r1, r1, #0x0;
+	STR r1, [r0,#GPIO_MODER];
+ 
+	LDR r1, [r0, #GPIO_PUPDR];
+	BIC r1,r1, #0xC000000;
+	ORR r1,r1, #0x0; // set to no pull-up pull-down
+	STR r1, [r0, #GPIO_PUPDR];
+ 
+	LDR r0,=GPIOB_BASE;//GPIOB=output
+
+	LDR r1,[r0, #GPIO_MODER];
+	BIC r1, r1, #0xF00;// clear pins 4,5
+ 	BIC r1, r1, #0x3C000000;// clear pins 13,14
+ 	ORR r1, r1, #0x500;//set all pins to output
+ 	ORR r1, r1, #0x18000000;//set all pins to output
+ 	STR r1, [r0,#GPIO_MODER];
+ 	LDR r1,[r0,#GPIO_OTYPER];
+	BIC r1,r1, #0x6030;//clear pins 4,5,13,14
+	ORR r1,r1, #0x0000;//set to push-pull
+	STR r1, [r0,#GPIO_OTYPER];
+	
+	LDR r1, [r0, #GPIO_PUPDR];
+	BIC r1, r1, #0xF00;// clear pins 4,5
+	BIC r1, r1, #0x3C000000;// clear pins 13,14
+	ORR r1,r1, #0x0000000; // set to no pull-up pull-down
+	STR r1, [r0, #GPIO_PUPDR];
 	
 	CPSIE i; enable global interrupts
 		
