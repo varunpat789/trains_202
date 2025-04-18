@@ -7,6 +7,7 @@
 	IMPORT	pin_init
 	IMPORT keypad_Init
 	IMPORT	printAccel
+	IMPORT printChug
 	IMPORT printDecel
 	IMPORT printEmerg
 	IMPORT printAtStopA
@@ -238,11 +239,6 @@ train_motor
 	;LDR r1, [r0, #EXTI_IMR1]; unmask to trigger IRQ handler
 	;ORR r1, #0x2000; 
 	;STR r1, [r0, #EXTI_IMR1]
-		
-	; pop back registers
-	
-	POP{r9}
-	POP {LR,r4,r0,r2,r8,r10,r11}
 	
 	POP{LR}                             ;if neither, exit
 	BX LR                
@@ -258,6 +254,7 @@ full_forwards_controls
 	MOV r2, #2
 	BL full_step_cycle_forwards ; Enter forwards loop
 	
+	BL printChug
 	MOV r11, #0					; Initialize current rotation counter
 	MOV r2, #2
 	BL full_step_cycle_forwards ; Enter forwards loop
@@ -266,6 +263,12 @@ full_forwards_controls
 	MOV r2, #3
 	BL printDecel
 	BL full_step_cycle_forwards ; Enter forwards loop
+   
+	
+	; pop back registers
+	
+	POP{r9}
+	POP {LR,r4,r0,r2,r8,r10,r11}
 	
 	BX LR                            ;exit once rotation is done
 
@@ -326,6 +329,7 @@ full_step_cycle_forwards
 
 full_reverse_controls
 	
+	
 	MOV r11, #0					; Initialize current rotation counter
 	MOV r2, #1
 	BL printAccel
@@ -335,10 +339,16 @@ full_reverse_controls
 	MOV r2, #2
 	BL full_step_cycle_reverse ; Enter forwards loop
 	
+	BL printChug
 	MOV r11, #0					; Initialize current rotation counter
 	MOV r2, #3
 	BL printDecel
 	BL full_step_cycle_reverse ; Enter forwards loop    
+	
+	; pop back registers
+	
+	POP{r9}
+	POP {LR,r4,r0,r2,r8,r10,r11}
 
 	BX LR                            ;exit once rotation is done
 
@@ -396,19 +406,6 @@ full_step_cycle_reverse
 	BXGT LR						; If so, return to the main function
 	
 	B full_step_cycle_reverse	; Else, repeat
-
-delay_train
-	; Delay for software debouncing
-	LDR	r2, =0x1FFF
-	MUL r2, r2, r8
-	; Keep smallest (fastest) delay at #10
-	; Keep largest (slowest) factor at #225
-delayloop_train
-	SUBS	r2, #1
-	BNE	delayloop_train
-	BX LR
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -632,6 +629,19 @@ delayloop
 	SUBS	r2, #1
 	BNE	delayloop
 	BX LR
+	
+delay_train
+	; Delay for software debouncing
+	LDR	r2, =0x1FFF
+	MUL r2, r2, r8
+	; Keep smallest (fastest) delay at #10
+	; Keep largest (slowest) factor at #225
+delayloop_train
+	SUBS	r2, #1
+	BNE	delayloop_train
+	BX LR
+
+
 long_delay
 	; Delay for software debouncing
 	LDR	r2, =0xFFFFFF

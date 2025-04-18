@@ -7,6 +7,7 @@
 	
 	AREA    main, CODE, READONLY
 	EXPORT	printAccel
+	EXPORT printChug
 	EXPORT printDecel
 	EXPORT printEmerg
 	EXPORT printAtStopA
@@ -29,6 +30,14 @@ printAccel
 	PUSH{r0, r1,r12, LR}		; Push to stack
 	LDR r0, =accel			; Load text
 	MOV r1, #15    			; Load length of text
+	BL USART2_Write			; Branch to C method to write to TeraTerm
+	POP{r0, r1,r12, LR}			; Pop from stack
+	BX LR					; Return from branch
+	
+printChug
+	PUSH{r0, r1,r12, LR}		; Push to stack
+	LDR r0, =chug			; Load text
+	MOV r1, #18    			; Load length of text
 	BL USART2_Write			; Branch to C method to write to TeraTerm
 	POP{r0, r1,r12, LR}			; Pop from stack
 	BX LR					; Return from branch
@@ -151,6 +160,7 @@ print_over3
 	BX LR					; Return from branch
 	
 accel	DCB "Accelerating!\r\n", 0
+chug	DCB "Chugga Chugga...\r\n", 0
 decel	DCB "Decelerating!\r\n", 0
 emerg	DCB "Emergency Stop!\r\n", 0
 atStopA	DCB "Moving to stop A!\r\n", 0
