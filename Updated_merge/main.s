@@ -68,6 +68,7 @@ __main	PROC
     ; Start from stop 1(A)
     LDR r12, =stops             ;load in address of data
     LDR r11, [r12]              ;load in value, stop 1
+	MOV r10, #2                 ;start next station as B
 
     ;Set Direction as forward
     MOV r9, #1                 ; 1 == forward, 0 == reverse
@@ -178,10 +179,13 @@ ignore_flag_handler_end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 train_motor
-	PUSH {LR}
+
 	PUSH{r4}
 	MOV r4, r9     						;load in flag for what direction to go
 	PUSH{r0,r5,r6,r7,r8,r9,r11} 		;want to listen on r9(direction) and r10(stop), need r12 as it holds base address
+
+	MOV r6, LR
+	PUSH {LR}
 
 	MOV r10, #215						; Initialize max rotation threshold, Full step requires 215 rotations
 	MOV r9, #0							; Initialize on/off flag, on = 1, off = 0
@@ -196,11 +200,17 @@ train_motor
 	MOV r4, r9     						; load in flag for what direction to go
 	PUSH{r9}    		
 	CMP r4, #1              			; compare flag with 1
-	BEQ full_forwards_controls    		; if we have set flag to 1, then we want to initaite forward movement
+	BLEQ full_forwards_controls    		; if we have set flag to 1, then we want to initaite forward movement
 	CMP r4, #0							; compare flag with 0
-	BEQ full_reverse_controls   		; if we have set flag to 0, initiate reverse movement
+	BLEQ full_reverse_controls   		; if we have set flag to 0, initiate reverse movement
+	
+	POP{LR}
+	MOV LR, r6
+	
+	BX LR
 
 full_forwards_controls
+	PUSH {LR}
 	
 	MOV r11, #0					; Initialize current rotation counter
 	MOV r7, #1
@@ -283,10 +293,20 @@ full_step_cycle_forwards
 	B full_step_cycle_forwards	; Else, repeat
 
 full_reverse_controls
+
+	PUSH{r6}
+	mov r6, LR
+	PUSH{LR}
+	
+	PUSH {LR}
 	
 	MOV r11, #0					; Initialize current rotation counter
 	MOV r7, #1
 	BL printAccel
+	BL full_step_cycle_reverse ; Enter forwards loop
+
+	MOV r11, #0					; Initialize current rotation counter
+	MOV r7, #2
 	BL full_step_cycle_reverse ; Enter forwards loop
 	
 	MOV r11, #0					; Initialize current rotation counter
@@ -296,12 +316,14 @@ full_reverse_controls
 	MOV r11, #0					; Initialize current rotation counter
 	MOV r7, #3
 	BL printDecel
-	BL full_step_cycle_reverse ; Enter forwards loop    
-	
-	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
-	POP{r4}
+	BL full_step_cycle_reverse ; Enter forwards loop
+   
 	
 	POP{LR}
+	MOV LR, r6
+	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
+	POP{r4,r6}
+	
 	BX LR                            ;exit once rotation is done
 
 full_step_cycle_reverse
@@ -383,6 +405,8 @@ green_led
     LDR r3, =GPIOA_BASE             ;load in port A
     LDR r4, [r3, #GPIO_ODR]
 	
+	MOV r8, #1     ;test
+	
     CMP r8, #1                      ;check to see what our status(r8) is
     MOVEQ r4, #0x00000020            ;if our status is moving set ODR high(green light)
 	MOVNE r4, #0x00000000			;if our status is not moving, set ODR low
@@ -428,11 +452,13 @@ door_motor
 
 
 full_step_init
+	PUSH{LR}
 	MOV r11, #0					; Initialize current rotation counter
 	BL full_cycle_forwards ; Enter forwards loop
 
 	MOV r11, #0					; Reset current rotation counter
 	BL full_cycle_reverse  ; Enter reverse loop
+	POP{LR}
 
 	BX LR
 

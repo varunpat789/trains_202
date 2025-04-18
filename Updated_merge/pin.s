@@ -33,18 +33,33 @@ pin_init	PROC
 
     
     ; GREEN LED
-	LDR r1, =GPIOC_BASE        		;load in base module
-	LDR r2, [r1, #GPIO_MODER]      	;load moad register
-	BIC r2, r2, #0x0C000000         ;clear bits for PC13, 26-27
-	ORR r2, r2, #0x08000000    		;set 01 for pin 13 for output
+	; Enable Port A clocks
+	LDR r0, =RCC_BASE      			;load in base module
+	LDR r1, [r0, #RCC_AHB2ENR]     	;load in clock module
+	ORR r1, r1, #0x00000001         ;set clock for Port A high
+	STR r1, [r0, #RCC_AHB2ENR]     	;store result back to clock reg
+
+	;set the mode of PA5 for output
+	LDR r0, =GPIOA_BASE        		;load in base module
+	LDR r1, [r0, #GPIO_MODER]      	;load moad register
+	BIC r1, r1, #0x00000C00         ;clear bits for PA5, 10-11
+	ORR r1, r1, #0x00000400    		;set 01 for pin 5 for output
 	STR r1, [r0,#GPIO_MODER]       	;store result back to moder
 	
-	;set the pupdr of PC13
-	LDR r1, =GPIOC_BASE        		;load in base module
-	LDR r2, [r1, #GPIO_PUPDR]      	;load moad register
-	BIC r2, r2, #0x0C000000         ;clear bits for PC13
-	ORR r2, r2, #0x08000000    		;set 01 for pin 13 for PU/PD
-	STR r2, [r1,#GPIO_PUPDR]       	;store result back to pupdr
+	;otyper
+	LDR r0, =GPIOA_BASE        		;load in base module
+	LDR r1, [r0, #GPIO_OTYPER]      	;load moad register
+	BIC r1, r0, #0x00000020         ;clear bits for PA5, 10-11
+	ORR r1, r0, #0x00000000    		;set 00 for pin 5 for output
+	STR r1, [r0,#GPIO_OTYPER]       	;store result back to moder
+	
+	;set the pupdr of PA5
+	LDR r0, =GPIOA_BASE        		;load in base module
+	LDR r1, [r0, #GPIO_PUPDR]      	;load moad register
+	BIC r1, r1, #0x00000C00         ;clear bits for PA5
+	ORR r1, r1, #0x00000000    		;set 01 for pin 5 for PU/PD
+	STR r1, [r0,#GPIO_PUPDR]       	;store result back to pupdr
+	
 	
 
 	;interrupt
@@ -157,10 +172,6 @@ pin_init	PROC
  	ORR r1, r1, #0x500;//set all pins to output
  	ORR r1, r1, #0x18000000;//set all pins to output
  	STR r1, [r0,#GPIO_MODER];
- 	LDR r1,[r0,#GPIO_OTYPER];
-	BIC r1,r1, #0x6030;//clear pins 4,5,13,14
-	ORR r1,r1, #0x0000;//set to push-pull
-	STR r1, [r0,#GPIO_OTYPER];
 	
 	LDR r1, [r0, #GPIO_PUPDR];
 	BIC r1, r1, #0xF00;// clear pins 4,5
