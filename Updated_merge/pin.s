@@ -119,15 +119,13 @@ pin_init	PROC
 		ORR r1,r1, #0; no pull-up pull-down
 		STR r1, [r0, #GPIO_PUPDR];
 
-
-
 	;door motor pins
 	;	Enable clocks for GPIOC
 	LDR r0, =RCC_BASE; // load RCC module to r0
 		
-		LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
-		ORR r1,r1, #0x4; // enable GPIOC
-		STR r1, [r0,#RCC_AHB2ENR];
+	LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
+	ORR r1,r1, #0x4; // enable GPIOC
+	STR r1, [r0,#RCC_AHB2ENR];
 	
 	; Set GPIOC pins 10,11,12,14 as output pins
 	LDR r0,=GPIOC_BASE;//GPIOB
@@ -140,6 +138,68 @@ pin_init	PROC
 	ORR r1, #0x00004000
 	ORR r1, #0x01000000
 	STR r1, [r0,#GPIO_MODER];
+	
+	;keypad
+	LDR r0, =RCC_BASE; // load RCC module to r0
+		
+		LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
+		ORR r1,r1, #0x2; // enable GPIOB
+		STR r1, [r0,#RCC_AHB2ENR];
+		
+		LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
+		ORR r1,r1, #0x4; // enable GPIOC
+		STR r1, [r0,#RCC_AHB2ENR];
+
+	LDR r0,=GPIOC_BASE;//GPIOC=output=rows
+	
+		LDR r1,[r0, #GPIO_MODER];
+		BIC r1, r1, #0xFF;//pins 0,1,2,3
+		ORR r1, r1, #0x55;//output
+		STR r1, [r0,#GPIO_MODER];
+		
+		LDR r1,[r0,#GPIO_OTYPER];
+		BIC	r1,r1, #0xF;//pins 0,1,2,3
+		ORR r1,r1, #0xF;//set to open drain
+		STR r1, [r0,#GPIO_OTYPER];
+		
+		LDR r1, [r0, #GPIO_PUPDR];
+		BIC r1,r1, #0xFF;// pins 0,1,2,3
+		ORR r1,r1, #0xAA; // set to pull down
+		STR r1, [r0, #GPIO_PUPDR];
+
+		LDR r1, [r0, #GPIO_ODR]
+		BIC r1,#0xF
+		STR r1, [r0, #GPIO_ODR]
+		
+	LDR r0,=GPIOB_BASE;//GPIOB=input=cols
+	
+		LDR r1,[r0, #GPIO_MODER];
+		BIC r1, r1, #0xFC;//pins 1,2,3
+		ORR r1, r1, #0x0;//set all pins to input
+		STR r1, [r0,#GPIO_MODER];
+	
+		LDR r1,[r0,#GPIO_OTYPER];
+		BIC	r1,r1, #0xE;//pins 1,2,3
+		ORR r1,r1, #0x0;//set to push-pull
+		STR r1, [r0,#GPIO_OTYPER];
+		
+		LDR r1, [r0, #GPIO_PUPDR];
+		BIC r1, r1, #0xFC;//pins 1,2,3
+		ORR r1,r1, #0x0; // set to no pull-up pull-down
+		STR r1, [r0, #GPIO_PUPDR];
+		
+	;LED
+	LDR r0, =RCC_BASE
+		LDR r1, [r0, #RCC_AHB2ENR]
+		ORR r1, r1, #0x1         ; Enable GPIOA clock
+		STR r1, [r0, #RCC_AHB2ENR]
+
+	; Set PA5 to output mode
+	LDR r0, =GPIOA_BASE
+		LDR r1, [r0, #GPIO_MODER]
+		BIC r1, r1, #(0x3 << (5*2))     ; Clear MODER5 bits
+		ORR r1, r1, #(0x1 << (5*2))     ; Set MODER5 to 01 (output)
+		STR r1, [r0, #GPIO_MODER]
 
 	;seven segment
 	LDR r0, =RCC_BASE; // load RCC module to r0

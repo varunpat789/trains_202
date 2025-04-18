@@ -77,9 +77,12 @@ __main	PROC
 
     ; Set count variable to ensure proper automatic movement
     MOV r7, #0  
+	
+	BL door_motor
+	
+	;BL train_motor
 
     BL automatic                ; subroutine to carry out automatic funcitonality
-
 
 
 
@@ -105,6 +108,7 @@ automatic
 	CMP r4, #1                       ;if we do not want to ignore, display seven seg
     BLLT seven_segment               ; branch to seven_segment sub to display current stop
 	
+	
 	BL long_delay
 
 	CMP r4, #1                       ;call again bc flag times out
@@ -118,7 +122,7 @@ automatic
 	BL long_delay
 	
 	CMP r4, #2							;compare again, don't carry out train movement if ignore2 high
-    BLLT train_motor                  ; move the train either forward or backward
+    ;BLLT train_motor                  ; move the train either forward or backward
 	
 	BL long_delay
 
@@ -189,7 +193,7 @@ ignore_flag_handler_end
 	BX LR
 
 
-
+	LTORG
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;README;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -209,9 +213,15 @@ ignore_flag_handler_end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 train_motor
+
 	PUSH {LR,r4,r0,r2,r8,r10,r11} 	            ;want to listen on r9(direction)
 	MOV r4, r9     							;load in flag for what direction to go
 	PUSH{r9}								;preserve r9
+	
+	;LDR r0, =EXTI_BASE
+	;LDR r1, [r0, #EXTI_IMR1]; mask to disasble IRQ handler
+	;BIC r1, #0x2000; 
+	;STR r1, [r0, #EXTI_IMR1]
 
 	MOV r10, #215						; Initialize max rotation threshold, Full step requires 215 rotations
 	MOV r9, #0							; Initialize on/off flag, on = 1, off = 0
@@ -223,6 +233,11 @@ train_motor
 	BEQ full_forwards_controls    		; if we have set flag to 1, then we want to initaite forward movement
 	CMP r4, #0							; compare flag with 0
 	BEQ full_reverse_controls   		; if we have set flag to 0, initiate reverse movement
+	
+	;LDR r0, =EXTI_BASE
+	;LDR r1, [r0, #EXTI_IMR1]; unmask to trigger IRQ handler
+	;ORR r1, #0x2000; 
+	;STR r1, [r0, #EXTI_IMR1]
 	
 	POP{LR}                             ;if neither, exit
 	BX LR                
@@ -392,7 +407,7 @@ full_step_cycle_reverse
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-
+	LTORG
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;LED START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;README;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -423,6 +438,61 @@ green_led
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;LED END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+seven_segment
+	push {lr, r0, r1, r2, r3}
+	cmp r10, #1                  	; see what station we are at
+	beq stationA					; if r10 is 1, we are at station A	and branch accordinl
+	cmp r10, #2                   
+	beq stationB					; if r10 is 1 or 21(station B on return direction), we are station B
+	cmp r10, #21
+	beq stationB
+	cmp r10, #3
+	beq stationC					; if r10 is 3, we are station C
+	b exit							; if r10 does not hold any of these values, exit 
+	
+
+stationA; when we get to station A, we will be moving the correct value to output A
+	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x2000        ; clear first
+	BIC r1, r1, #0x0010        ; clear first
+	ORR r1, r1, #0x2000        ; set Pins 13(D) high for 0001 to DCBA
+	ORR r1, r1, #0x0000        
+	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
+	BL printAtStopA
+	b exit					   ; return 
+            
+stationB; when we get to station B, we will be moving the correct value to output B
+	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x2000        ; clear first
+	BIC r1, r1, #0x0010        ; clear first
+	ORR r1, r1, #0x0010        ; set Pin 4(B) high for 0010 to DCBA
+	ORR r1, r1, #0x0000        
+	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
+	BL printAtStopB
+	b exit; return
+
+stationC; when we get to station C, we will be moving the correct value to output C
+	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x2000		   ; clear bits
+	BIC r1, r1, #0x0010
+	ORR r1, r1, #0x0010        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
+	ORR r1, r1, #0x2000        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
+	ORR r1, r1, #0x0000
+	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
+	BL printAtStopC
+	b exit
+	
+exit 
+	pop {lr, r0, r1, r2, r3}	; pop from seven_segment main
+	BX lr
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DOOR_MOTOR START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -497,7 +567,7 @@ full_cycle_forwards
 	CMP r11, r10				; Check if the max number of rotations has occured
 	BXGT LR						; If so, return to the main function
 	
-	B full_step_cycle_forwards	; Else, repeat
+	B full_cycle_forwards	; Else, repeat
 	
 full_cycle_reverse
 	push{LR}					; Push the link register to the stack
@@ -542,65 +612,11 @@ full_cycle_reverse
 	CMP r11, r10				; Check if the max number of rotations has occured
 	BXGT LR						; If so, return to the main function
 	
-	B full_step_cycle_reverse	; Else, repeat
+	B full_cycle_reverse	; Else, repeat
 	
-	
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DOOR_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DOOR MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-seven_segment
-	push {lr, r0, r1, r2, r3}
-	cmp r10, #1                  	; see what station we are at
-	beq stationA					; if r10 is 1, we are at station A	and branch accordinl
-	cmp r10, #2                   
-	beq stationB					; if r10 is 1 or 21(station B on return direction), we are station B
-	cmp r10, #21
-	beq stationB
-	cmp r10, #3
-	beq stationC					; if r10 is 3, we are station C
-	b exit							; if r10 does not hold any of these values, exit 
-	
-
-stationA; when we get to station A, we will be moving the correct value to output A
-	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
-	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x2000        ; clear first
-	BIC r1, r1, #0x0010        ; clear first
-	ORR r1, r1, #0x2000        ; set Pins 13(D) high for 0001 to DCBA
-	ORR r1, r1, #0x0000        
-	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
-	b exit					   ; return 
-            
-stationB; when we get to station B, we will be moving the correct value to output B
-	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
-	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x2000        ; clear first
-	BIC r1, r1, #0x0010        ; clear first
-	ORR r1, r1, #0x0010        ; set Pin 4(B) high for 0010 to DCBA
-	ORR r1, r1, #0x0000        
-	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
-	b exit; return
-
-stationC; when we get to station C, we will be moving the correct value to output C
-	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
-	LDR r1, [r0, #GPIO_ODR]
-	BIC r1, r1, #0x2000		   ; clear bits
-	BIC r1, r1, #0x0010
-	ORR r1, r1, #0x0010        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
-	ORR r1, r1, #0x2000        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
-	ORR r1, r1, #0x0000
-	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
-	b exit
-	
-exit 
-	pop {lr, r0, r1, r2, r3}	; pop from seven_segment main
-	BX lr
-	
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
+	LTORG
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 delay
@@ -613,7 +629,7 @@ delayloop
 	
 delay_train
 	; Delay for software debouncing
-	LDR	r2, =0xFFF
+	LDR	r2, =0x1FFF
 	MUL r2, r2, r8
 	; Keep smallest (fastest) delay at #10
 	; Keep largest (slowest) factor at #225
@@ -652,7 +668,7 @@ EXTI15_10_IRQHandler PROC
 	bl printManualOverride
 	LDR r6, =GPIOA_BASE; turn on green led
     LDR r7, [r6, #GPIO_ODR]
-    EOR r7, r7, #(1 << 5)
+    ORR r7, r7, #(1 << 5)
     STR r7, [r6, #GPIO_ODR]
 	
     BL keypad_Init; initialize keypad pins, NEEDS WORK, CURRENTLY ALLOWS TO MOVE PAST WITH GARBAGE VALUE

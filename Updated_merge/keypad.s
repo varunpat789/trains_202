@@ -30,66 +30,6 @@ keypad_Init	PROC
 	BL UART2_Init
 	
 ;;;;;;;;;;;; YOUR CODE GOES HERE	;;;;;;;;;;;;;;;;;;;
-	LDR r0, =RCC_BASE; // load RCC module to r0
-		
-		LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
-		ORR r1,r1, #0x2; // enable GPIOB
-		STR r1, [r0,#RCC_AHB2ENR];
-		
-		LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
-		ORR r1,r1, #0x4; // enable GPIOC
-		STR r1, [r0,#RCC_AHB2ENR];
-
-	LDR r0,=GPIOC_BASE;//GPIOC=output=rows
-	
-		LDR r1,[r0, #GPIO_MODER];
-		BIC r1, r1, #0xFF;//pins 0,1,2,3
-		ORR r1, r1, #0x55;//output
-		STR r1, [r0,#GPIO_MODER];
-		
-		LDR r1,[r0,#GPIO_OTYPER];
-		BIC	r1,r1, #0xF;//pins 0,1,2,3
-		ORR r1,r1, #0xF;//set to open drain
-		STR r1, [r0,#GPIO_OTYPER];
-		
-		LDR r1, [r0, #GPIO_PUPDR];
-		BIC r1,r1, #0xFF;// pins 0,1,2,3
-		ORR r1,r1, #0xAA; // set to pull down
-		STR r1, [r0, #GPIO_PUPDR];
-
-		LDR r1, [r0, #GPIO_ODR]
-		BIC r1,#0xF
-		STR r1, [r0, #GPIO_ODR]
-		
-	LDR r0,=GPIOB_BASE;//GPIOB=input=cols
-	
-		LDR r1,[r0, #GPIO_MODER];
-		BIC r1, r1, #0xFC;//pins 1,2,3
-		ORR r1, r1, #0x0;//set all pins to input
-		STR r1, [r0,#GPIO_MODER];
-	
-		LDR r1,[r0,#GPIO_OTYPER];
-		BIC	r1,r1, #0xE;//pins 1,2,3
-		ORR r1,r1, #0x0;//set to push-pull
-		STR r1, [r0,#GPIO_OTYPER];
-		
-		LDR r1, [r0, #GPIO_PUPDR];
-		BIC r1, r1, #0xFC;//pins 1,2,3
-		ORR r1,r1, #0x0; // set to no pull-up pull-down
-		STR r1, [r0, #GPIO_PUPDR];
-		
-	;LED
-	LDR r0, =RCC_BASE
-		LDR r1, [r0, #RCC_AHB2ENR]
-		ORR r1, r1, #0x1         ; Enable GPIOA clock
-		STR r1, [r0, #RCC_AHB2ENR]
-
-	; Set PA5 to output mode
-	LDR r0, =GPIOA_BASE
-		LDR r1, [r0, #GPIO_MODER]
-		BIC r1, r1, #(0x3 << (5*2))     ; Clear MODER5 bits
-		ORR r1, r1, #(0x1 << (5*2))     ; Set MODER5 to 01 (output)
-		STR r1, [r0, #GPIO_MODER]
         
 keypad 
 	LDR r4,=GPIOB_BASE; //Loading values from GPIOB to r4
@@ -97,7 +37,12 @@ keypad
 	push {r2}; //Pushing r2 and lr to the stack
 	bl delay; //Branch linking to delay function
 	pop {r2}
+	BIC r5, #0xFFFFFF00
 	cmp r5,#0x1E; //comparing all cols are 1s
+	beq keypad; //Branching to keypad whenever the value from r5 is all ones
+	cmp r5,#0x1E; //comparing all cols are 1s
+	beq keypad; //Branching to keypad whenever the value from r5 is all ones
+	cmp r5,#0x0E; //comparing all cols are 1s
 	beq keypad; //Branching to keypad whenever the value from r5 is all ones
 	bne check_col_1; //Branching to check_col_1 as an else case
 	
@@ -110,7 +55,6 @@ check_col_1
 	cmp r5, #0x16; //Comparing the value from r5 to the value for col 1
 	addeq r10,#3; //Adding 3 to r10 if equal
 	mov r6,r5; //Copying the value of r5 to r6
-	bl press_check; //Branch linking to press_check
 	b row; //Branching to row after branch linking
 	
 row
@@ -124,15 +68,6 @@ row
 	bl f_row; //scan fourth row
 	b ascii_decoder; //branching to ascii_decoder
 
-press_check
-	LDR r4,=GPIOB_BASE; //Loading the GPIOB values to r4
-	LDR r5, [r4, #GPIO_IDR]; //Loading the IDR values from r4 to r5
-	push{lr}; //Pushing lr to stack
-	bl delay; //Branch linking to delay
-	pop{lr}; //Popping lr from stack
-	cmp r5,r6; //checking the first iteration value and second iteration values are the same
-	bne press_check; //When not equal, we go back to press_check
-	bx lr; //If equal, break and store link register value
 	
 o_row
 	push{lr}; //pushing lr to stack
