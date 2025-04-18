@@ -429,14 +429,14 @@ door_motor
 
 full_step_init
 	MOV r11, #0					; Initialize current rotation counter
-	BL full_step_cycle_forwards ; Enter forwards loop
+	BL full_cycle_forwards ; Enter forwards loop
 
 	MOV r11, #0					; Reset current rotation counter
-	BL full_step_cycle_reverse  ; Enter reverse loop
+	BL full_cycle_reverse  ; Enter reverse loop
 
 	BX LR
 
-full_step_cycle_forwards
+full_cycle_forwards
 	push{LR}					; Push the link register to the stack
 		
 	LDR r0, =GPIOC_BASE
@@ -479,7 +479,7 @@ full_step_cycle_forwards
 	
 	B full_step_cycle_forwards	; Else, repeat
 	
-full_step_cycle_reverse
+full_cycle_reverse
 	push{LR}					; Push the link register to the stack
 	
 	MOV r9, #0
