@@ -52,7 +52,7 @@ printEmerg
 printAtStopA
 	PUSH{r0, r1, r12, LR}		; Push to stack
 	LDR r0, =atStopA		; Load text
-	MOV r1, #12 			; Load length of text
+	MOV r1, #19 			; Load length of text
 	BL USART2_Write			; Branch to C method to write to TeraTerm
 	POP{r0, r1, r12, LR}			; Pop from stack
 	BX LR					; Return from branch
@@ -60,7 +60,7 @@ printAtStopA
 printAtStopB
 	PUSH{r0, r1, r12, LR}		; Push to stack
 	LDR r0, =atStopB		; Load text
-	MOV r1, #12 			; Load length of text
+	MOV r1, #19 			; Load length of text
 	BL USART2_Write			; Branch to C method to write to TeraTerm
 	POP{r0, r1, r12, LR}			; Pop from stack
 	BX LR					; Return from branch
@@ -68,7 +68,7 @@ printAtStopB
 printAtStopC
 	PUSH{r0, r1, r12, LR}		; Push to stack
 	LDR r0, =atStopC		; Load text
-	MOV r1, #12 			; Load length of text
+	MOV r1, #19 			; Load length of text
 	BL USART2_Write			; Branch to C method to write to TeraTerm
 	POP{r0, r1, r12, LR}			; Pop from stack
 	BX LR					; Return from branch
