@@ -273,7 +273,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000210
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 
 	; A, B
 	LDR r0, =GPIOC_BASE
@@ -282,7 +282,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000110
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 
 	; A', B
 	LDR r0, =GPIOC_BASE
@@ -291,7 +291,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000140
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 
 	; A', B'
 	LDR r0, =GPIOC_BASE
@@ -300,7 +300,7 @@ full_step_cycle_forwards
 	ORR r1, r1, #0x00000240
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 	
 	POP{LR}						; Pop the link register from the stack
 
@@ -352,7 +352,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000240
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 	
 	; A', B
 	LDR r0, =GPIOC_BASE
@@ -361,7 +361,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000140
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 
 	; A, B
 	LDR r0, =GPIOC_BASE
@@ -370,7 +370,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000110
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 	
 	; A, B'
 	LDR r0, =GPIOC_BASE
@@ -379,7 +379,7 @@ full_step_cycle_reverse
 	ORR r1, r1, #0x00000210
 	STR r1, [r0, #GPIO_ODR]
 	
-	BL delay
+	BL delay_train
 	
 	POP{LR}						; Pop the link register from the stack
 	
@@ -605,12 +605,24 @@ exit
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 delay
 	; Delay for software debouncing
-	LDR	r2, =0xE10
+	LDR	r2, =0xFFFF
 delayloop
 	SUBS	r2, #1
 	BNE	delayloop
 	BX LR
 	
+delay_train
+	; Delay for software debouncing
+	LDR	r2, =0xFFF
+	MUL r2, r2, r8
+	; Keep smallest (fastest) delay at #10
+	; Keep largest (slowest) factor at #225
+delayloop_train
+	SUBS	r2, #1
+	BNE	delayloop_train
+	BX LR
+
+
 long_delay
 	; Delay for software debouncing
 	LDR	r2, =0xFFFFFF
