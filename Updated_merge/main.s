@@ -90,13 +90,11 @@ automatic
 
 	CMP r4, #0                       ;if we do not want to ignore, execute al subroutines
 
-    BLEQ seven_segment              ; branch to seven_segment sub to display current stop
+    BLEQ seven_segment               ; branch to seven_segment sub to display current stop
 
-    BLEQ open               		 ; branch to open doors, only if stoppingb
+    BLEQ door_motor                  ; branch to open doors, only if stoppingb
 
-	BLEQ close               		 ; branch to close doors,
-
-    MOVEQ r8, #1                    ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
+    MOVEQ r8, #1                     ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
 
 	CMP r4, #2                         ;if ignore2, don't carry out train movement
     BLNE green_led                    ; turn on green led to indicate movement, keep on
@@ -410,118 +408,121 @@ delayloop
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DOOR_MOTOR START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-open
-	mov r8,#0; outer motor spin 
-	ldr r7, =half_step
-	bl button; only happens at the open and at the open of ever new window shield cycle
-	bic r4, #0xFF; reset r4 to be used for loading
-	b loop_clockwise
-close
-	;delay function goes here
-	b loop_counter_clockwise
+door_motor
 
-loop_counter_clockwise
-	mov r5, #0; i
-	bl delay
-	sub r8, #1
-	cmp r8, #0
-	beq open
-	push {r8}; so we can reuse r8
-	b spin_ccw
+	PUSH {lr,r10,r11,r9} 
+
+	MOV r10, #215			;rotation counter
+
+	CMP r11, r10			; Check if the max number of rotations has occured
+	MOVEQ r11, #0 			; Reset the rotation counter
 	
-spin_ccw
-	bl delay
-	mov r6, #0
-	ldrb r4, [r7,r5]; A - pb2
-	and r4, #0x8
-	lsr r4,#1
-	orr r6,r4
+	MOV r9, #1		  	 ;if not equal, keep on check
 	
-	ldrb r4, [r7,r5]; ~A - pb3
-	and r4, #0x4
-	lsl r4,#1
-	orr r6,r4
+	CMP r9, #1				; Check if cycle should be on
+	BLEQ full_step_init      ; Begin the cycle if on
 	
-	ldrb r4, [r7,r5]; B - pb6
-	and r4, #0x2
-	lsl r4,#5
-	orr r6,r4
+	POP {lr,r10,r11,r9}
 	
-	ldrb r4, [r7,r5]; ~B - pb7
-	and r4, #0x1
-	lsl r4,#7
-	orr r6,r4
+	bx lr         		 ;return to main
+
+
+full_step_init
+	MOV r11, #0					; Initialize current rotation counter
+	BL full_step_cycle_forwards ; Enter forwards loop
+
+	MOV r11, #0					; Reset current rotation counter
+	BL full_step_cycle_reverse  ; Enter reverse loop
+
+	BX LR
+
+full_step_cycle_forwards
+	push{LR}					; Push the link register to the stack
+		
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00001080         ; 1001
+	STR r1, [r0, #GPIO_ODR]
 	
-	bl delay
-	LDR r8,=GPIOB_BASE;//GPIOB
-	LDR r1,[r8, #GPIO_ODR];
-	BIC r1, #0xCC
-	mov r1,r6
-	STR r1,[r8,#GPIO_ODR]; update the inner motor
+	BL delay
+
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00000880	        ; 1010
+	STR r1, [r0, #GPIO_ODR]
 	
-	add r5, #1; increment the spin sequence
-	cmp r5, #8; check if we finished the sequence
+	BL delay
+
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00000C00			; 0101
+	STR r1, [r0, #GPIO_ODR]
 	
-	blt spin_ccw; if not loop 
-	bl delay
-	pop {r8}
-	b loop_counter_clockwise; if we did go back to bigger loop
+	BL delay
+
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00001400
+	STR r1, [r0, #GPIO_ODR]
 	
-loop_clockwise; loop counter_clockwise but in reverse instead of increment we decrement now to end up in the same spot
-	mov r5, #7; i
-	bl delay
-	add r8,#1
-	cmp r8,#270; 145 degree counter clockwise spin
-	beq close; branch back to open
-	push {r8}
+	BL delay
 	
-spin_cc
-	bl delay
-	mov r6, #0
-	ldrb r4, [r7,r5]; A - pb2
-	and r4, #0x8
-	lsr r4,#1
-	orr r6,r4
+	POP{LR}						; Pop the link register from the stack
+
+	ADD r11, r11, #1			; Increase the rotation counter by 1
+	CMP r11, r10				; Check if the max number of rotations has occured
+	BXGT LR						; If so, return to the main function
 	
-	ldrb r4, [r7,r5]; ~A - pb3
-	and r4, #0x4
-	lsl r4,#1
-	orr r6,r4
+	B full_step_cycle_forwards	; Else, repeat
 	
-	ldrb r4, [r7,r5]; B - pb6
-	and r4, #0x2
-	lsl r4,#5
-	orr r6,r4
+full_step_cycle_reverse
+	push{LR}					; Push the link register to the stack
 	
-	ldrb r4, [r7,r5]; ~B - pb7
-	and r4, #0x1
-	lsl r4,#7
-	orr r6,r4
+	MOV r9, #0
 	
-	bl delay
-	LDR r8,=GPIOB_BASE;//GPIOB
-	LDR r1,[r8, #GPIO_ODR];
-	BIC r1, #0xCC
-	mov r1,r6
-	STR r1,[r8,#GPIO_ODR]
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00001400
+	STR r1, [r0, #GPIO_ODR]
 	
-	sub r5, #1
-	cmp r5, #0
-	bgt spin_cc
-	bl delay
-	pop {r8}
-	b loop_clockwise
+	BL delay
 	
-button
-	push {r4,r5,lr}
-press
-	LDR r4,=GPIOC_BASE;//GPIOC
-	LDR r5, [r4, #GPIO_IDR]
-	bl delay
-	cmp r5,#0x2000; if button is pressed
-	beq press; loop until button is pressed
-	pop {r4,r5,lr}
-	bx lr
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00000C00			; 0101
+	STR r1, [r0, #GPIO_ODR]
+	
+	BL delay
+	
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00000880	        ; 1010
+	STR r1, [r0, #GPIO_ODR]
+	
+	BL delay
+	
+	LDR r0, =GPIOC_BASE
+	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x00001C80
+	ORR r1, r1, #0x00001080         ; 1001
+	STR r1, [r0, #GPIO_ODR]
+	
+	BL delay
+	
+	POP{LR}						; Pop the link register from the stack
+	
+	ADD r11, r11, #1			; Increase the rotation counter by 1
+	CMP r11, r10				; Check if the max number of rotations has occured
+	BXGT LR						; If so, return to the main function
+	
+	B full_step_cycle_reverse	; Else, repeat
 	
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DOOR_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
