@@ -147,34 +147,18 @@ pin_init	PROC
 	LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
 	ORR r1,r1, #0x2; // enable GPIOB
 	STR r1, [r0,#RCC_AHB2ENR];
- 
-	LDR r1, [r0,#RCC_AHB2ENR]; // load AHB2ENR value to r1
-	ORR r1,r1, #0x4; // enable GPIOC
-	STR r1, [r0,#RCC_AHB2ENR];
 
-	LDR r0,=GPIOC_BASE;//GPIOC=input
-
-	LDR r1,[r0, #GPIO_MODER];
-	BIC r1, r1, #0xC000000;
-	ORR r1, r1, #0x0;
-	STR r1, [r0,#GPIO_MODER];
- 
-	LDR r1, [r0, #GPIO_PUPDR];
-	BIC r1,r1, #0xC000000;
-	ORR r1,r1, #0x0; // set to no pull-up pull-down
-	STR r1, [r0, #GPIO_PUPDR];
- 
 	LDR r0,=GPIOB_BASE;//GPIOB=output
 
 	LDR r1,[r0, #GPIO_MODER];
-	BIC r1, r1, #0xF00;// clear pins 4,5
+	BIC r1, r1, #0x00000F00;// clear pins 4,5
  	BIC r1, r1, #0x3C000000;// clear pins 13,14
- 	ORR r1, r1, #0x500;//set all pins to output
- 	ORR r1, r1, #0x18000000;//set all pins to output
+ 	ORR r1, r1, #0x00000500;//set all pins to output
+ 	ORR r1, r1, #0x14000000;//set all pins to output
  	STR r1, [r0,#GPIO_MODER];
 	
 	LDR r1, [r0, #GPIO_PUPDR];
-	BIC r1, r1, #0xF00;// clear pins 4,5
+	BIC r1, r1, #0x00000F00;// clear pins 4,5
 	BIC r1, r1, #0x3C000000;// clear pins 13,14
 	ORR r1,r1, #0x0000000; // set to no pull-up pull-down
 	STR r1, [r0, #GPIO_PUPDR];

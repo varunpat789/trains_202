@@ -67,8 +67,7 @@ __main	PROC
     
     ; Start from stop 1(A)
     LDR r12, =stops             ;load in address of data
-    LDR r11, [r12]              ;load in value, stop 1
-	MOV r10, #2                 ;start next station as B
+    LDR r10, [r12, #4]!           ;load in value, stop 1
 
     ;Set Direction as forward
     MOV r9, #1                 ; 1 == forward, 0 == reverse
@@ -86,39 +85,67 @@ __main	PROC
 
 automatic
 
+	;PSUEDO
+	
+	
+	;If no ignore flags set, then: Set seven segment, open door, set LED, move train, turn off LED, repeat
+	;Ignores only set during manual operation
+	;If ignore1 set, then we want to move to next station without stopping. Only carryout LED and train motor. Flag goes to 0 after 1 iteration
+	;If ignore2 set, ignore everything for one iteration, then carry out ignore2 for next iteration
+
     ; automatic functionining of train
 	BL interrup_flags                ;check if interrupt has been called
+	
+	BL long_delay
 
-	CMP r4, #0                       ;if we do not want to ignore, execute al subroutines
+	CMP r4, #1                       ;if we do not want to ignore, execute al subroutines
+	
+	MOVLT r8, #1
 
-    BLEQ seven_segment               ; branch to seven_segment sub to display current stop
+	CMP r4, #1                       ;if we do not want to ignore, display seven seg
+    BLLT seven_segment               ; branch to seven_segment sub to display current stop
+	
+	BL long_delay
 
-    BLEQ door_motor                  ; branch to open doors, only if stoppingb
+	CMP r4, #1                       ;call again bc flag times out
+    BLLT door_motor                  ; branch to open doors, only if stopping
+	
+	BL long_delay
 
-    MOVEQ r8, #1                     ; set status to 1 to indicate we're about to start moving, only update if we are moving stop to stop
+	CMP r4, #2                        ;if ignore2, don't carry out train movement
+    BLLT green_led                    ; turn on green led to indicate movement, keep on
+	
+	BL long_delay
+	
+	CMP r4, #2							;compare again, don't carry out train movement if ignore2 high
+    BLLT train_motor                  ; move the train either forward or backward
+	
+	BL long_delay
 
-	CMP r4, #2                         ;if ignore2, don't carry out train movement
-    BLNE green_led                    ; turn on green led to indicate movement, keep on
+	CMP r4, #1                       ;set back ignore flag
 
-    BLNE train_motor                  ; move the train either forward or backward
+    MOVLT r8, #0                    ; set status to 0 to indicate we've stopped moving, don't stop moving if skipping
 
-	CMP r4, #0                       ;set back ignore flag
-
-    MOVEQ r8, #0                    ; set status to 0 to indicate we've stopped moving
-
-    BLEQ green_led                  ; once train is done moving, turn off green led
+	CMP r4, #1
+    BLLT green_led                  ; once train is done moving, turn off green led
+	
+	BL long_delay
 
 	;update train station
 	CMP r10, #21					; if we are currently at station B on way back, move stop to beginning of array, station A
-	LDREQ r10, [r12]				; load start of array back to r10, r10 will now be station A and points to beginning of stops array
-	LDRNE r11, [r10, #4]!			; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
-	LDRNE r10, [r11]
+	LDREQ r12, =stops
+	LDREQ r10, [r12]			; load start of array back to r10, r10 will now be station A and points to beginning of stops array
+	LDRNE r10, [r12, #4]!				; else increment our stops to next one, stop = stops[i + 1], r11 is a placeholder
 
 	BL configure_direction           ; figure out direction for next run
+	
+	BL long_delay
 
 	CMP r4, #0                       ;check if our ignore_count is non-zero
 
 	BLGT ignore_flag_handler_end        ;if ignore_count > 0, do logic for ignore flag
+	
+	BL long_delay
 
     B automatic                      ; continue this loop indefinitely, manual override will be interrupt
 
@@ -152,8 +179,11 @@ configure_direction
 ignore_flag_handler_end
 							
 	SUB r4, #1                       ;num_times_ignore = num_times_ignore - 1, but only if non zero, set flags
-	CMP r4, #0                       ;if we are done ignoring, set ignore flags back to o
+	CMP r4, #1                       ;if we are done ignoring, set ignore flags back to o
 	MOVEQ r7, #0					 ; set ignore2 back to 0 so we don't always ignore
+	MOVEQ r6, #1                     ;now carry out ignore1
+	
+	CMP r4, #0
 	MOVEQ r6, #0				     ; set ignore1 back to 0
 
 	BX LR
@@ -179,71 +209,59 @@ ignore_flag_handler_end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	
 train_motor
-
-	PUSH{r4}
-	MOV r4, r9     						;load in flag for what direction to go
-	PUSH{r0,r5,r6,r7,r8,r9,r11} 		;want to listen on r9(direction) and r10(stop), need r12 as it holds base address
-
-	MOV r6, LR
-	PUSH {LR}
+	PUSH {LR,r4,r0,r2,r8,r10,r11} 	            ;want to listen on r9(direction)
+	MOV r4, r9     							;load in flag for what direction to go
+	PUSH{r9}								;preserve r9
 
 	MOV r10, #215						; Initialize max rotation threshold, Full step requires 215 rotations
 	MOV r9, #0							; Initialize on/off flag, on = 1, off = 0
 	MOV r8, #225						; delay/speed factor (higher factor = slower stepper)
-	MOV r7, #0 							; Current rotation state (1 = accel, 2 = steady, 3 = deccel)
+	MOV r2, #0 							; Current rotation state (1 = accel, 2 = steady, 3 = deccel)
 	
-	;need this for when we call again, if reg 11 is still 215 from last time, then we need to reset
-	CMP r11, r10						; Check if the max number of rotations has occured
-	MOVEQ r11, #0 						; Reset the rotation counter if we have reached 215 sequences
-	
-	;check to see what direction we have specified in main
-	MOV r4, r9     						; load in flag for what direction to go
-	PUSH{r9}    		
+	;check to see what direction we have specified in main		
 	CMP r4, #1              			; compare flag with 1
-	BLEQ full_forwards_controls    		; if we have set flag to 1, then we want to initaite forward movement
+	BEQ full_forwards_controls    		; if we have set flag to 1, then we want to initaite forward movement
 	CMP r4, #0							; compare flag with 0
-	BLEQ full_reverse_controls   		; if we have set flag to 0, initiate reverse movement
+	BEQ full_reverse_controls   		; if we have set flag to 0, initiate reverse movement
 	
-	POP{LR}
-	MOV LR, r6
-	
-	BX LR
+	POP{LR}                             ;if neither, exit
+	BX LR                
 
 full_forwards_controls
-	PUSH {LR}
-	
+		
 	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #1
+	MOV r2, #1
 	BL printAccel
 	BL full_step_cycle_forwards ; Enter forwards loop
 
 	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #2
+	MOV r2, #2
 	BL full_step_cycle_forwards ; Enter forwards loop
 	
 	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #2
+	MOV r2, #2
 	BL full_step_cycle_forwards ; Enter forwards loop
 	
 	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #3
+	MOV r2, #3
 	BL printDecel
 	BL full_step_cycle_forwards ; Enter forwards loop
    
 	
-	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
-	POP{r4}
+	; pop back registers
 	
-	POP{LR}
+	POP{r9}
+	POP {LR,r4,r0,r2,r8,r10,r11}
+	
 	BX LR                            ;exit once rotation is done
 
 full_step_cycle_forwards
 	push{LR}					; Push the link register to the stack	
 	
-	CMP r7, #1	; check if accel
+	CMP r2, #1	; check if accel
 	SUBEQ r8, r8, #1 ; dec speed factor to increase stepper speed
 	
-	CMP r7, #3 	; check if decel
+	CMP r2, #3 	; check if decel
 	ADDEQ r8, r8, #1 ; inc speed factor to dec stepper speed
 	
 	;Set ODR for C4 (A), C6 (A'), C8 (B), C9 (B') for output
@@ -293,46 +311,36 @@ full_step_cycle_forwards
 	B full_step_cycle_forwards	; Else, repeat
 
 full_reverse_controls
-
-	PUSH{r6}
-	mov r6, LR
-	PUSH{LR}
 	
-	PUSH {LR}
 	
 	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #1
+	MOV r2, #1
 	BL printAccel
 	BL full_step_cycle_reverse ; Enter forwards loop
-
+	
 	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #2
+	MOV r2, #2
 	BL full_step_cycle_reverse ; Enter forwards loop
 	
 	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #2
-	BL full_step_cycle_reverse ; Enter forwards loop
-	
-	MOV r11, #0					; Initialize current rotation counter
-	MOV r7, #3
+	MOV r2, #3
 	BL printDecel
-	BL full_step_cycle_reverse ; Enter forwards loop
-   
+	BL full_step_cycle_reverse ; Enter forwards loop    
 	
-	POP{LR}
-	MOV LR, r6
-	POP{r0,r5,r6,r7,r8,r9,r11}		; pop back registers
-	POP{r4,r6}
+	; pop back registers
 	
+	POP{r9}
+	POP {LR,r4,r0,r2,r8,r10,r11}
+
 	BX LR                            ;exit once rotation is done
 
 full_step_cycle_reverse
 	push{LR}			; Push the link register to the stack
 	
-	CMP r7, #1			; check if accel
+	CMP r2, #1			; check if accel
 	SUBEQ r8, r8, #1 	; dec speed factor to increase stepper speed
 	
-	CMP r7, #3 			; check if decel
+	CMP r2, #3 			; check if decel
 	ADDEQ r8, r8, #1 	; inc speed factor to dec stepper speed
 	
 	;Set ODR for C4 (A), C6 (A'), C8 (B), C9 (B') for output
@@ -381,7 +389,6 @@ full_step_cycle_reverse
 	
 	B full_step_cycle_reverse	; Else, repeat
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TRAIN_MOTOR END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -405,8 +412,6 @@ green_led
     LDR r3, =GPIOA_BASE             ;load in port A
     LDR r4, [r3, #GPIO_ODR]
 	
-	MOV r8, #1     ;test
-	
     CMP r8, #1                      ;check to see what our status(r8) is
     MOVEQ r4, #0x00000020            ;if our status is moving set ODR high(green light)
 	MOVNE r4, #0x00000000			;if our status is not moving, set ODR low
@@ -418,17 +423,6 @@ green_led
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;LED END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-delay
-	; Delay for software debouncing
-	LDR	r2, =0xE10
-delayloop
-	SUBS	r2, #1
-	BNE	delayloop
-	BX LR
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DOOR_MOTOR START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -571,6 +565,8 @@ seven_segment
 stationA; when we get to station A, we will be moving the correct value to output A
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
 	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x2000        ; clear first
+	BIC r1, r1, #0x0010        ; clear first
 	ORR r1, r1, #0x2000        ; set Pins 13(D) high for 0001 to DCBA
 	ORR r1, r1, #0x0000        
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
@@ -579,6 +575,8 @@ stationA; when we get to station A, we will be moving the correct value to outpu
 stationB; when we get to station B, we will be moving the correct value to output B
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
 	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x2000        ; clear first
+	BIC r1, r1, #0x0010        ; clear first
 	ORR r1, r1, #0x0010        ; set Pin 4(B) high for 0010 to DCBA
 	ORR r1, r1, #0x0000        
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
@@ -587,8 +585,11 @@ stationB; when we get to station B, we will be moving the correct value to outpu
 stationC; when we get to station C, we will be moving the correct value to output C
 	LDR r0,=GPIOB_BASE		   ; load GPIOB=output
 	LDR r1, [r0, #GPIO_ODR]
+	BIC r1, r1, #0x2000		   ; clear bits
+	BIC r1, r1, #0x0010
 	ORR r1, r1, #0x0010        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
 	ORR r1, r1, #0x2000        ; set Pins 13(D) and Pin 5() high for 1100 to DCBA
+	ORR r1, r1, #0x0000
 	STR r1, [r0, #GPIO_ODR]	   ; store r1, which is our ASCII value into output
 	b exit
 	
@@ -597,6 +598,29 @@ exit
 	BX lr
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SEVEN_SEGMENT END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+delay
+	; Delay for software debouncing
+	LDR	r2, =0xE10
+delayloop
+	SUBS	r2, #1
+	BNE	delayloop
+	BX LR
+	
+long_delay
+	; Delay for software debouncing
+	LDR	r2, =0xFFFFFF
+delayloop1
+	SUBS	r2, #1
+	BNE	delayloop1
+	BX LR
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DELAY END;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;INTERRUPT START;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 stop b stop
@@ -611,7 +635,7 @@ half_step DCB 0x9, 0x8, 0xa, 0x2, 0x6, 0x4, 0x5, 0x1
 	ENDP
 
 EXTI15_10_IRQHandler PROC
-    PUSH {r4-r11, lr}
+    PUSH {r4-r11,lr}
 	
 	bl printManualOverride
 	LDR r6, =GPIOA_BASE; turn on green led
@@ -619,7 +643,7 @@ EXTI15_10_IRQHandler PROC
     EOR r7, r7, #(1 << 5)
     STR r7, [r6, #GPIO_ODR]
 	
-    BL keypad_Init; initialize keypad pins 
+    BL keypad_Init; initialize keypad pins, NEEDS WORK, CURRENTLY ALLOWS TO MOVE PAST WITH GARBAGE VALUE
 
     ; Clear EXTI13 interrupt pending bit
     LDR r4, =EXTI_BASE
@@ -635,7 +659,7 @@ EXTI15_10_IRQHandler PROC
 	
     POP {r4-r11, lr}
 	
-	PUSH {lr}
+	PUSH {lr} 
 
 	cmp r0, #49; override 1
 	moveq r1, #1
@@ -643,29 +667,6 @@ EXTI15_10_IRQHandler PROC
 	b skip1
 o1
 	bl print_over1
-	b next
-skip1
-	cmp r0, #50; override 2
-	moveq r1, #2
-	beq o2
-	b skip2
-o2
-	bl print_over2
-	b next
-skip2
-	cmp r0, #51; override 3
-	moveq r1, #3
-	beq o3
-	b skip3
-o3
-	bl print_over3
-	b next
-skip3
-	
-next
-
-    ; flags go here
-
 	;next desired station in r1, current desired station in r10
 	
 	;FSM logic
@@ -688,8 +689,80 @@ next
 	bl printEndOverride
 	POP{lr}
 	
+	MOV r7, #1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TEST;;;;;;;;;;;;;;;;;;;;;
+	
     BX lr
+skip1
+	cmp r0, #50; override 2
+	moveq r1, #2
+	beq o2
+	b skip2
+o2
+	bl print_over2
+	
+	;next desired station in r1, current desired station in r10
+	
+	;FSM logic
+	
+	;PSUEDO   if(current_next == 3 && desired_next == 1): then interrupt_flag2 = 1
+	CMP r10, #3
+	BLEQ flag2_check1
 
+	;PSUEDO   if(current_next == 1 && desired_next == 3): then interrupt_flag2 = 1
+	CMP r10, #1
+	BLEQ flag2_check2
+
+	; PSUEDO if(current_next == 2): then interrupt_flag1 = 1
+	CMP r10, #2
+	BLEQ flag1_check1
+
+	CMP r10, #21
+	BLEQ flag1_check2
+
+	bl printEndOverride
+	POP{lr}
+	
+	MOV r7, #1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TEST;;;;;;;;;;;;;;;;;;;;;
+	
+    BX lr
+skip2
+	cmp r0, #51; override 3
+	moveq r1, #3
+	beq o3
+	b skip3
+o3
+	bl print_over3
+	
+	;next desired station in r1, current desired station in r10
+	
+	;FSM logic
+	
+	;PSUEDO   if(current_next == 3 && desired_next == 1): then interrupt_flag2 = 1
+	CMP r10, #3
+	BLEQ flag2_check1
+
+	;PSUEDO   if(current_next == 1 && desired_next == 3): then interrupt_flag2 = 1
+	CMP r10, #1
+	BLEQ flag2_check2
+
+	; PSUEDO if(current_next == 2): then interrupt_flag1 = 1
+	CMP r10, #2
+	BLEQ flag1_check1
+
+	CMP r10, #21
+	BLEQ flag1_check2
+
+	bl printEndOverride
+	POP{lr}
+	
+	MOV r7, #1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;TEST;;;;;;;;;;;;;;;;;;;;;
+	
+    BX lr
+	
+skip3
+	POP {lr}
+	BX LR
+	
 flag2_check1 
 
 	CMP r1, #1    ;see if desired next is 1
